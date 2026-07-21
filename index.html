@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>How to Sing Harmony</title>
+  <meta name="description" content="Learn to sing hymn harmony. Isolate soprano, alto, tenor, or bass and follow the score as it plays.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#127925;</text></svg>">
+</head>
+<body>
+  <div id="app">
+    <header id="topbar">
+      <button id="backBtn" class="icon-btn" title="Back to song list" hidden>&#8592;</button>
+      <h1 id="appTitle">How to Sing Harmony <span class="beta">beta</span></h1>
+      <a id="homeLink" href="https://calebhugo.com" title="calebhugo.com">calebhugo.com</a>
+    </header>
+
+    <section id="listView">
+      <div class="list-controls">
+        <input id="search" type="search" placeholder="Search hymns&hellip;" autocomplete="off">
+      </div>
+      <ul id="songList"></ul>
+      <footer class="list-footer">
+        <p>74 hymns &middot; four-part harmony &middot; pick a part and sing along</p>
+        <p><a href="https://sing-harmony.calebhugo.com">classic version</a></p>
+      </footer>
+    </section>
+
+    <section id="songView" hidden>
+      <div id="songHeader">
+        <h2 id="songTitle"></h2>
+        <div id="songMeta"></div>
+      </div>
+      <div id="controls">
+        <button id="playBtn" class="play-btn" title="Play / pause (space)">
+          <svg viewBox="0 0 24 24" class="ic-play"><path d="M8 5v14l11-7z"/></svg>
+          <svg viewBox="0 0 24 24" class="ic-pause" hidden><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+        </button>
+        <div id="voiceChips"></div>
+        <div class="tempo-wrap">
+          <label for="tempo">Tempo</label>
+          <input id="tempo" type="range" min="40" max="220" step="1">
+          <span id="tempoVal"></span>
+          <button id="tempoReset" class="icon-btn" title="Reset tempo">&#8634;</button>
+        </div>
+      </div>
+      <div id="scoreWrap"><div id="score"></div></div>
+      <div id="status" hidden></div>
+    </section>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

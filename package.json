@@ -1,0 +1,19 @@
+{
+  "name": "singharmony2",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "convert": "node scripts/convert.mjs"
+  },
+  "dependencies": {
+    "resound-notation": "^1.0.0",
+    "resound-sound": "^0.2.0"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}
