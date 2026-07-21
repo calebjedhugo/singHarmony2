@@ -73,10 +73,12 @@ async function openSong(slug, push) {
   listView.hidden = true;
   songView.hidden = false;
   backBtn.hidden = false;
+  player.clearLoop();
   setPlayingUI(false);
   score.render(song);
   score.setMuted(player.muted);
   score.setCursor(player.beat, true);
+  refreshLoopUI();
   if (push) history.pushState({ slug }, '', `?song=${slug}`);
   document.title = `${song.title} · How to Sing Harmony`;
 }
@@ -127,6 +129,33 @@ async function togglePlay() {
 }
 
 playBtn.addEventListener('click', togglePlay);
+$('#rewindBtn').addEventListener('click', () => player.rewind());
+
+// A-B loop
+const loopA = $('#loopA');
+const loopB = $('#loopB');
+const loopClear = $('#loopClear');
+function refreshLoopUI() {
+  loopA.classList.toggle('loop-set', player.loopStart !== null);
+  loopB.classList.toggle('loop-set', player.loopEnd !== null);
+  loopClear.toggleAttribute('hidden', player.loopStart === null && player.loopEnd === null);
+  score.setLoopRange(player.loopStart, player.looping ? player.loopEnd : null);
+}
+loopA.addEventListener('click', () => {
+  player.setLoopStart();
+  if (player.loopEnd !== null && player.loopEnd <= player.loopStart) player.loopEnd = null;
+  refreshLoopUI();
+});
+loopB.addEventListener('click', () => {
+  player.setLoopEnd();
+  if (player.loopStart === null || player.loopEnd <= player.loopStart) player.loopStart = player.firstNoteBeat();
+  player.seek(player.loopStart);
+  refreshLoopUI();
+});
+loopClear.addEventListener('click', () => {
+  player.clearLoop();
+  refreshLoopUI();
+});
 document.addEventListener('keydown', (e) => {
   if (e.code === 'Space' && current && e.target.tagName !== 'INPUT') {
     e.preventDefault();

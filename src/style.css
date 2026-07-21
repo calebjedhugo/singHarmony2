@@ -93,6 +93,30 @@ body {
   gap: 14px; padding: 10px 16px 14px;
   border-bottom: 1px solid var(--line);
 }
+.transport { display: flex; align-items: center; gap: 8px; }
+.transport-btn {
+  width: 40px; height: 40px; border-radius: 50%;
+  border: 1px solid var(--line); background: var(--card); color: var(--ink-soft);
+  display: grid; place-items: center; cursor: pointer; padding: 0;
+}
+.transport-btn:hover { border-color: var(--accent); color: var(--accent); }
+.transport-btn svg { width: 18px; height: 18px; fill: currentColor; }
+
+.loop-wrap { display: flex; align-items: center; gap: 4px; margin-left: 4px; }
+.loop-btn {
+  width: 30px; height: 30px; border-radius: 8px; padding: 0;
+  border: 1px solid var(--line); background: var(--card); color: var(--ink-soft);
+  font-size: 0.75rem; font-weight: 700; cursor: pointer;
+}
+.loop-btn:hover { border-color: var(--accent); color: var(--accent); }
+.loop-btn.loop-set { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.text-btn {
+  border: 1px solid var(--line); background: none; color: var(--ink-soft);
+  border-radius: 8px; font-size: 0.72rem; padding: 4px 8px; cursor: pointer;
+}
+.text-btn:hover { border-color: var(--accent); color: var(--accent); }
+
 .play-btn {
   width: 54px; height: 54px; border-radius: 50%;
   border: none; background: var(--accent); color: #fff; cursor: pointer;
@@ -147,6 +171,9 @@ body {
 }
 #score [data-beat] { cursor: pointer; }
 #score [data-beat]:hover { opacity: 0.75; }
+
+/* A-B loop: dim everything outside the looped passage */
+#score.has-loop [data-beat]:not(.in-loop) { opacity: 0.25; }
 
 .part-label {
   font-family: Georgia, serif; font-weight: 700;

@@ -29,6 +29,8 @@ export class Player {
     this.beat = 0;
     this.muted = new Set();
     this.bpm = 100;
+    this.loopStart = null;
+    this.loopEnd = null;
     this.onTick = null;     // (beat) => void
     this.onEnd = null;
     this._timer = null;
@@ -116,10 +118,26 @@ export class Player {
     if (this.onTick) this.onTick(this.beat);
   }
 
+  rewind() {
+    this.seek(this.looping ? this.loopStart : this.firstNoteBeat());
+  }
+
+  get looping() {
+    return this.loopStart !== null && this.loopEnd !== null && this.loopEnd > this.loopStart;
+  }
+
+  setLoopStart() { this.loopStart = this.beat; }
+  setLoopEnd() { this.loopEnd = this.beat; }
+  clearLoop() { this.loopStart = null; this.loopEnd = null; }
+
   async play() {
     if (this.playing) return;
     await this.ensurePiano();
-    if (this.beat >= this.totalBeats) this.beat = this.firstNoteBeat();
+    if (this.looping && (this.beat < this.loopStart || this.beat >= this.loopEnd - 1e-9)) {
+      this.beat = this.loopStart;
+    } else if (this.beat >= this.totalBeats) {
+      this.beat = this.firstNoteBeat();
+    }
     this.playing = true;
     this._lastNow = performance.now();
     this._fired = new Set();
@@ -146,15 +164,18 @@ export class Player {
     const dt = (now - this._lastNow) / 1000;
     this._lastNow = now;
     const from = this.beat;
-    const to = from + dt / this.secPerBeat(from);
-    // fire events with beat in [from, to)
+    let to = from + dt / this.secPerBeat(from);
+    // loop wrap: play up to the loop end, then jump back to the loop start
+    const wrapping = this.looping && from < this.loopEnd && to >= this.loopEnd;
+    const fireUntil = wrapping ? this.loopEnd : to;
     for (const ev of this.events) {
-      if (ev.beat >= to) break;
+      if (ev.beat >= fireUntil) break;
       if (ev.beat < from) continue;
       if (this.muted.has(ev.voice)) continue;
       const durMs = ev.durBeats * this.secPerBeat(ev.beat) * 1000;
       this.piano.startNote(ev.pitch, durMs, this.velocity());
     }
+    if (wrapping) to = this.loopStart;
     this.beat = to;
     if (this.onTick) this.onTick(this.beat);
     if (this.beat >= this.totalBeats + 2) {

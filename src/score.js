@@ -66,16 +66,26 @@ export class Score {
     if (!svg) return;
     this.noteIndex.clear();
     this.activeEls = [];
+    // data-beat is SYSTEM-RELATIVE (the renderer slices voices per system and
+    // restarts its beat counter), so recover the absolute beat from the
+    // group's data-start-measure.
+    const [num, den] = this.song.timeSignature;
+    const measureBeats = num * (4 / den);
     for (const group of svg.querySelectorAll('[data-voice-id]')) {
       const voiceId = group.getAttribute('data-voice-id');
+      const startMeasure = Number(group.getAttribute('data-start-measure') || 0);
+      const systemStartBeat = startMeasure * measureBeats;
       if (!this.noteIndex.has(voiceId)) this.noteIndex.set(voiceId, []);
       const list = this.noteIndex.get(voiceId);
       for (const el of group.querySelectorAll('[data-beat]')) {
-        list.push({ el, beat: Number(el.getAttribute('data-beat')) });
+        const beat = systemStartBeat + Number(el.getAttribute('data-beat'));
+        el.dataset.absBeat = String(beat);
+        list.push({ el, beat });
       }
     }
     for (const list of this.noteIndex.values()) list.sort((a, b) => a.beat - b.beat);
     this._addPartLabels(svg);
+    this._applyLoopRange();
     if (this.lastBeat >= 0) this.setCursor(this.lastBeat, true);
   }
 
@@ -107,7 +117,7 @@ export class Score {
   _handleClick(e) {
     const el = e.target.closest('[data-beat]');
     if (!el || !this.onSeek) return;
-    this.onSeek(Number(el.getAttribute('data-beat')));
+    this.onSeek(Number(el.dataset.absBeat ?? el.getAttribute('data-beat')));
   }
 
   setMuted(mutedSet) {
@@ -140,6 +150,27 @@ export class Score {
     if (scrollTarget) this._autoScroll(scrollTarget);
   }
 
+  /** Tint the notes inside the A-B loop range (pass nulls to clear). */
+  setLoopRange(start, end) {
+    this._loopStart = start;
+    this._loopEnd = end;
+    this._applyLoopRange();
+  }
+
+  _applyLoopRange() {
+    const svg = this.container.querySelector('svg');
+    if (!svg) return;
+    for (const el of svg.querySelectorAll('.in-loop')) el.classList.remove('in-loop');
+    const active = this._loopStart != null && this._loopEnd != null;
+    this.container.classList.toggle('has-loop', active);
+    if (!active) return;
+    for (const list of this.noteIndex.values()) {
+      for (const { el, beat } of list) {
+        if (beat >= this._loopStart - 1e-9 && beat < this._loopEnd - 1e-9) el.classList.add('in-loop');
+      }
+    }
+  }
+
   clearCursor() {
     for (const el of this.activeEls) el.classList.remove('sh-active');
     this.activeEls = [];
@@ -147,14 +178,18 @@ export class Score {
   }
 
   _autoScroll(el) {
-    const now = performance.now();
-    if (this._lastScroll && now - this._lastScroll < 300) return;
-    const rect = el.getBoundingClientRect();
+    // Scroll only when the cursor enters a different system, and only if that
+    // system isn't already fully visible — keeps the score rock-steady.
+    const system = el.closest('[data-system-index]');
+    const systemKey = system && system.getAttribute('data-system-index');
+    if (systemKey === this._lastSystemKey) return;
+    this._lastSystemKey = systemKey;
+    if (!system) return;
+    const rect = system.getBoundingClientRect();
     const wrap = this.container.closest('#scoreWrap') || this.container;
     const wrapRect = wrap.getBoundingClientRect();
-    if (rect.top < wrapRect.top + 40 || rect.bottom > wrapRect.bottom - 60) {
-      this._lastScroll = now;
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (rect.top < wrapRect.top + 10 || rect.bottom > wrapRect.bottom - 10) {
+      system.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }
 }

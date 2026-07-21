@@ -32,16 +32,26 @@
         <div id="songMeta"></div>
       </div>
       <div id="controls">
-        <button id="playBtn" class="play-btn" title="Play / pause (space)">
-          <svg viewBox="0 0 24 24" class="ic-play"><path d="M8 5v14l11-7z"/></svg>
-          <svg viewBox="0 0 24 24" class="ic-pause" hidden><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
-        </button>
+        <div class="transport">
+          <button id="rewindBtn" class="icon-btn transport-btn" title="Back to start (or loop start)">
+            <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+          </button>
+          <button id="playBtn" class="play-btn" title="Play / pause (space)">
+            <svg viewBox="0 0 24 24" class="ic-play"><path d="M8 5v14l11-7z"/></svg>
+            <svg viewBox="0 0 24 24" class="ic-pause" hidden><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+          </button>
+          <div class="loop-wrap" title="Loop a passage: click a note to place the cursor, then set A and B">
+            <button id="loopA" class="icon-btn loop-btn">A</button>
+            <button id="loopB" class="icon-btn loop-btn">B</button>
+            <button id="loopClear" class="icon-btn loop-btn" hidden>&#10005;</button>
+          </div>
+        </div>
         <div id="voiceChips"></div>
         <div class="tempo-wrap">
           <label for="tempo">Tempo</label>
           <input id="tempo" type="range" min="40" max="220" step="1">
           <span id="tempoVal"></span>
-          <button id="tempoReset" class="icon-btn" title="Reset tempo">&#8634;</button>
+          <button id="tempoReset" class="text-btn" title="Reset to the song's tempo">reset</button>
         </div>
       </div>
       <div id="scoreWrap"><div id="score"></div></div>
