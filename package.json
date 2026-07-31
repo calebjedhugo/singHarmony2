@@ -10,7 +10,7 @@
     "convert": "node scripts/convert.mjs"
   },
   "dependencies": {
-    "resound-notation": "^1.0.0",
+    "resound-notation": "file:../resound-notation",
     "resound-sound": "^0.2.0"
   },
   "devDependencies": {

@@ -14,11 +14,6 @@ import { NotationRenderer } from 'resound-notation';
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const PART_LABELS = { soprano: 'S', alto: 'A', tenor: 'T', bass: 'B' };
 
-function transposePitch(pitch, octaves) {
-  if (!octaves) return pitch;
-  return pitch.replace(/(\d)$/, (d) => String(Number(d) + octaves));
-}
-
 export class Score {
   constructor(container, { onSeek } = {}) {
     this.container = container;
@@ -34,17 +29,24 @@ export class Score {
 
   render(song) {
     this.song = song;
+    // Close score: S+A share the treble staff, T+B the bass staff — everyone
+    // at true pitch (no tenor 8va; it reads from the bass clef as in hymnals).
+    const STAFF_MAP = {
+      soprano: { staff: 'upper', clef: 'treble' },
+      alto: { staff: 'upper', clef: 'treble' },
+      tenor: { staff: 'lower', clef: 'bass' },
+      bass: { staff: 'lower', clef: 'bass' },
+    };
     const data = {
       timeSignature: song.timeSignature,
       keySignature: song.keySignature,
       voices: song.voices.map((v) => ({
         id: v.id,
-        clef: v.clef,
-        notes: v.notes.map((n) => (n.pitch
-          ? { ...n, pitch: transposePitch(n.pitch, v.displayOctave) }
-          : n)),
+        staff: STAFF_MAP[v.id]?.staff,
+        clef: STAFF_MAP[v.id]?.clef ?? v.clef,
+        notes: v.notes,
       })),
-      staffGroups: [{ type: 'bracket', voiceIds: song.voices.map((v) => v.id) }],
+      staffGroups: [{ type: 'brace', voiceIds: song.voices.map((v) => v.id) }],
     };
     this._observer.disconnect();
     if (!this.renderer) this.renderer = new NotationRenderer({ container: this.container });
@@ -84,7 +86,7 @@ export class Score {
       }
     }
     for (const list of this.noteIndex.values()) list.sort((a, b) => a.beat - b.beat);
-    this._addPartLabels(svg);
+    // (no per-staff part labels in close score — the colored chips are the legend)
     this._applyLoopRange();
     if (this.lastBeat >= 0) this.setCursor(this.lastBeat, true);
   }

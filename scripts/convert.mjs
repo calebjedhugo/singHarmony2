@@ -347,6 +347,34 @@ for (let s = 0; s < songSpans.length; s++) {
     return { id: v.id, clef: v.clef, displayOctave: v.displayOctave, notes };
   });
 
+  // 4b. Merge verse-1 lyrics (lyrics/<slug>.json: syllables aligned to soprano
+  //     onsets — pitched notes that don't continue a tie; null = melisma)
+  const lyricsPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'lyrics', `${slug}.json`);
+  if (fs.existsSync(lyricsPath)) {
+    const lyricData = JSON.parse(fs.readFileSync(lyricsPath, 'utf8'));
+    // accept {syllables: [...]} (verse 1 only) or {verses: [[...], ...]}
+    const verses = lyricData.verses || (lyricData.syllables ? [lyricData.syllables] : []);
+    const soprano = voices[0];
+    const slots = soprano.notes.filter((n) => n.pitch && n.tie !== 'continue' && n.tie !== 'stop');
+    const good = verses.filter((v) => {
+      if (v.length === slots.length) return true;
+      warnings.push(`lyrics verse skipped: ${v.length} syllables vs ${slots.length} slots`);
+      return false;
+    });
+    if (good.length) {
+      let si = 0;
+      for (const n of soprano.notes) {
+        if (n.pitch && n.tie !== 'continue' && n.tie !== 'stop') {
+          const i = si++;
+          const perVerse = good.map((v) => v[i] ?? null);
+          if (perVerse.some(Boolean)) {
+            n.lyric = good.length === 1 ? (perVerse[0] || undefined) : perVerse;
+          }
+        }
+      }
+    }
+  }
+
   // 5. Key inference (use all voices, weighted by duration; anchored by final bass note)
   const bassEvents = voiceEvents[3];
   const finalBass = bassEvents.length ? bassEvents[bassEvents.length - 1].pitch : null;
