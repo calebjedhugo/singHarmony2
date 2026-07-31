@@ -123,6 +123,90 @@ function decompose(subs, vocab) {
   return out;
 }
 
+// ---------- lyric-split helpers ----------
+// A note's duration in notated quarter-note beats (whole note = 4 beats).
+function noteBeats(n) {
+  const den = Number(n.length.split('/')[1]);
+  return (4 / den) * (n.dotted ? 1.5 : 1);
+}
+
+// Parse a "splits" length entry ("1/4" or dotted "1/4.") into {length, dotted, beats}.
+function parseSplitLength(s) {
+  const dotted = s.endsWith('.');
+  const length = dotted ? s.slice(0, -1) : s;
+  const den = Number(length.split('/')[1]);
+  return { length, dotted, beats: (4 / den) * (dotted ? 1.5 : 1) };
+}
+
+// Apply an optional lyrics-file "splits" directive: divide the note at a given
+// (pre-split) soprano slot into several same-pitch, untied notes of the given
+// lengths, in each listed voice — matched by beat position, not array index, so
+// voices with independent rhythm (e.g. alto/tenor already moving in quarters
+// under a soprano half note) aren't disturbed. Must run before the lyric slots
+// are counted, so verses align to the post-split slot count.
+function applySplits(voices, splits, warnings) {
+  if (!splits || !splits.length) return;
+  const soprano = voices.find((v) => v.id === 'soprano');
+  if (!soprano) return;
+
+  // Soprano slot list computed ONCE against the pre-split notes, so each
+  // spec's "slot" index is stable regardless of the order splits are applied
+  // in (splitting only inserts notes; it never changes beat positions before
+  // the split point).
+  const origSlots = [];
+  {
+    let cur = 0;
+    for (const n of soprano.notes) {
+      const dur = noteBeats(n);
+      if (n.pitch && n.tie !== 'continue' && n.tie !== 'stop') origSlots.push({ start: cur, dur });
+      cur += dur;
+    }
+  }
+
+  for (const spec of splits) {
+    const target = origSlots[spec.slot];
+    if (!target) { warnings.push(`split: slot ${spec.slot} out of range (${origSlots.length} slots)`); continue; }
+    const pieces = spec.lengths.map(parseSplitLength);
+    const totalBeats = pieces.reduce((sum, p) => sum + p.beats, 0);
+    if (Math.abs(totalBeats - target.dur) > 1e-6) {
+      warnings.push(`split: slot ${spec.slot} lengths sum to ${totalBeats}b, expected ${target.dur}b`);
+      continue;
+    }
+    for (const voiceId of spec.voices) {
+      const v = voices.find((vv) => vv.id === voiceId);
+      if (!v) { warnings.push(`split: voice "${voiceId}" not found`); continue; }
+      let cur = 0;
+      let matchIdx = -1;
+      let foundOnset = false;
+      for (let i = 0; i < v.notes.length; i++) {
+        const n = v.notes[i];
+        const dur = noteBeats(n);
+        if (Math.abs(cur - target.start) < 1e-6) {
+          foundOnset = true;
+          if (Math.abs(dur - target.dur) < 1e-6 && n.tie !== 'continue' && n.tie !== 'stop' && n.tie !== 'start') {
+            matchIdx = i;
+          } else {
+            warnings.push(`split: ${voiceId} note at beat ${target.start} is ${dur}b${n.tie ? ` (tie:${n.tie})` : ''}, expected a single ${target.dur}b un-tied note — skipped`);
+          }
+          break;
+        }
+        if (cur > target.start + 1e-6) break; // passed the target beat with no onset there
+        cur += dur;
+      }
+      if (!foundOnset) { warnings.push(`split: ${voiceId} has no note onset at beat ${target.start} — skipped`); continue; }
+      if (matchIdx === -1) continue;
+      const orig = v.notes[matchIdx];
+      const newNotes = pieces.map((p) => {
+        const nn = { length: p.length };
+        if (p.dotted) nn.dotted = true;
+        if (orig.pitch) nn.pitch = orig.pitch;
+        return nn;
+      });
+      v.notes.splice(matchIdx, 1, ...newNotes);
+    }
+  }
+}
+
 const LETTER_PC = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
 function parsePitch(p) {
   const m = /^([A-G])(#|b)?(\d)$/.exec(p);
@@ -352,6 +436,11 @@ for (let s = 0; s < songSpans.length; s++) {
   const lyricsPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'lyrics', `${slug}.json`);
   if (fs.existsSync(lyricsPath)) {
     const lyricData = JSON.parse(fs.readFileSync(lyricsPath, 'utf8'));
+    // Optional {splits: [{slot, lengths, voices}, ...]}: divide a long note
+    // into shorter same-pitch notes so later verses can fit an extra
+    // syllable where verse 1 sings a melisma. Must run before slots are
+    // counted below, so verse lengths are validated against the new count.
+    applySplits(voices, lyricData.splits, warnings);
     // accept {syllables: [...]} (verse 1 only) or {verses: [[...], ...]}
     const verses = lyricData.verses || (lyricData.syllables ? [lyricData.syllables] : []);
     const soprano = voices[0];
