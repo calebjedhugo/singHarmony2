@@ -464,6 +464,29 @@ for (let s = 0; s < songSpans.length; s++) {
     }
   }
 
+  // 4c. Optional per-voice lyric lines ("voiceLyrics": {"bass": [...]}) — for
+  //     text genuinely sung by a lower voice (e.g. the It Is Well echo).
+  //     Entries align to THAT voice's slots; single line, no verse numbers.
+  if (fs.existsSync(lyricsPath)) {
+    const { voiceLyrics } = JSON.parse(fs.readFileSync(lyricsPath, 'utf8'));
+    for (const [voiceId, entries] of Object.entries(voiceLyrics || {})) {
+      const voice = voices.find((v) => v.id === voiceId);
+      if (!voice) { warnings.push(`voiceLyrics: unknown voice ${voiceId}`); continue; }
+      const slots = voice.notes.filter((n) => n.pitch && n.tie !== 'continue' && n.tie !== 'stop');
+      if (entries.length !== slots.length) {
+        warnings.push(`voiceLyrics ${voiceId} skipped: ${entries.length} entries vs ${slots.length} slots`);
+        continue;
+      }
+      let si = 0;
+      for (const n of voice.notes) {
+        if (n.pitch && n.tie !== 'continue' && n.tie !== 'stop') {
+          const syl = entries[si++];
+          if (syl) n.lyric = syl;
+        }
+      }
+    }
+  }
+
   // 5. Key inference (use all voices, weighted by duration; anchored by final bass note)
   const bassEvents = voiceEvents[3];
   const finalBass = bassEvents.length ? bassEvents[bassEvents.length - 1].pitch : null;

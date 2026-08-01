@@ -33,5 +33,16 @@
       "It", "is", "well,", "with", "my", "soul,",
       "\"E-", "ven", "so,\"", "it", "is", "well", "with", "my", "soul."
     ]
-  ]
+  ],
+  "voiceLyrics": {
+    "bass": [
+      null, null, null, null, null, null, null, null, null, null,
+      null, null, null, null, null, null, null, null, null, null,
+      null, null, null, null, null, null, null, null, null, null,
+      null, null, null, null, null, null, null, null, null, null,
+      null,
+      "It", "is", "well", "with", "my", "soul,", "It", "is",
+      null, null, null, null, null, null, null
+    ]
+  }
 }
