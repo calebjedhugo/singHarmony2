@@ -83,6 +83,7 @@ async function openSong(slug, push) {
   buildVerseChips();
   if (push) history.pushState({ slug }, '', `?song=${slug}`);
   document.title = `${song.title} · How to Sing Harmony`;
+  updateRotateHint();
 }
 
 function showList(push) {
@@ -94,9 +95,33 @@ function showList(push) {
   backBtn.hidden = true;
   if (push) history.pushState({}, '', location.pathname);
   document.title = 'How to Sing Harmony';
+  updateRotateHint();
 }
 
 backBtn.addEventListener('click', () => showList(true));
+$('#backBtn2').addEventListener('click', () => showList(true));
+
+// Rotate-to-landscape hint on small portrait touch screens (the score wants width)
+const rotateHint = document.createElement('div');
+rotateHint.id = 'rotateHint';
+rotateHint.hidden = true;
+rotateHint.innerHTML = '<div><span class="phone-icon">&#128241;</span>' +
+  'Rotate your phone sideways&mdash;<br>the music is much bigger in landscape.' +
+  '<br><button type="button">Keep portrait</button></div>';
+document.body.appendChild(rotateHint);
+rotateHint.querySelector('button').addEventListener('click', () => {
+  sessionStorage.setItem('sh-portrait-ok', '1');
+  rotateHint.hidden = true;
+});
+function updateRotateHint() {
+  const small = Math.min(window.innerWidth, window.innerHeight) < 500;
+  const portrait = window.innerHeight > window.innerWidth;
+  const touch = 'ontouchstart' in window;
+  const dismissed = sessionStorage.getItem('sh-portrait-ok');
+  rotateHint.hidden = !(small && portrait && touch && !dismissed && !songView.hidden);
+}
+window.addEventListener('resize', updateRotateHint);
+window.addEventListener('orientationchange', updateRotateHint);
 window.addEventListener('popstate', () => route(false));
 
 function route(push) {
