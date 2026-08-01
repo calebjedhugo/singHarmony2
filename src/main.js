@@ -76,6 +76,8 @@ async function openSong(slug, push) {
   player.clearLoop();
   setPlayingUI(false);
   score.verseFilter = 'all';
+  score.mode = defaultMode(); // set directly pre-render (setMode would re-render the old song)
+  applyModeUI(score.mode);
   score.render(song);
   score.setMuted(player.muted);
   score.setCursor(player.beat, true);
@@ -157,6 +159,27 @@ async function togglePlay() {
 
 playBtn.addEventListener('click', togglePlay);
 $('#rewindBtn').addEventListener('click', () => player.rewind());
+
+// page/ribbon score mode — ribbon defaults on for phone landscape
+const modeBtn = $('#modeBtn');
+function defaultMode() {
+  const saved = localStorage.getItem('sh-score-mode');
+  if (saved === 'page' || saved === 'ribbon') return saved;
+  return window.innerHeight < 500 && window.innerWidth > window.innerHeight ? 'ribbon' : 'page';
+}
+function applyModeUI(mode) {
+  modeBtn.querySelector('.ic-ribbon').toggleAttribute('hidden', mode === 'ribbon');
+  modeBtn.querySelector('.ic-page').toggleAttribute('hidden', mode !== 'ribbon');
+}
+function setMode(mode, save) {
+  score.setMode(mode); // re-renders if a song is loaded
+  applyModeUI(mode);
+  if (save) localStorage.setItem('sh-score-mode', mode);
+}
+modeBtn.addEventListener('click', () => setMode(score.mode === 'ribbon' ? 'page' : 'ribbon', true));
+window.addEventListener('resize', () => {
+  requestAnimationFrame(() => score.song && score._decorate());
+});
 
 // A-B loop
 const loopA = $('#loopA');

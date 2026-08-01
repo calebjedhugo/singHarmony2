@@ -157,6 +157,20 @@ body {
 
 /* ---------- score ---------- */
 #scoreWrap { flex: 1; overflow-y: auto; padding: 18px 12px 60px; }
+
+/* ribbon mode: one long system, horizontal scroll, score fills the height */
+#scoreWrap.ribbon-view {
+  overflow-x: auto; overflow-y: hidden;
+  padding: 10px 0; display: flex; align-items: stretch;
+  scrollbar-width: thin;
+}
+#score.ribbon {
+  max-width: none; width: max-content; height: 100%;
+  display: flex; align-items: center;
+  border-radius: 0; border-left: none; border-right: none;
+  padding: 8px 24px;
+}
+#score.ribbon svg { height: 100%; max-height: 520px; width: auto; }
 #score {
   max-width: 980px; margin: 0 auto;
   background: var(--card); border: 1px solid var(--line); border-radius: 12px;

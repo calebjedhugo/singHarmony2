@@ -21,11 +21,24 @@ export class Score {
     this.renderer = null;
     this.song = null;
     this.verseFilter = 'all'; // 'all' | 0-based verse index
+    this.mode = 'page'; // 'page' | 'ribbon'
+    this._userScrollUntil = 0;
+    const wrap = container.closest('#scoreWrap') || container;
+    for (const evt of ['wheel', 'touchmove']) {
+      wrap.addEventListener(evt, () => { this._userScrollUntil = performance.now() + 2500; }, { passive: true });
+    }
     this.noteIndex = new Map(); // voiceId -> sorted [{el, beat, dur}]
     this.activeEls = [];
     this.lastBeat = -1;
     this._observer = new MutationObserver(() => this._decorate());
     container.addEventListener('click', (e) => this._handleClick(e));
+  }
+
+  /** 'page' = vertical systems (hymnal page); 'ribbon' = one long horizontal system. */
+  setMode(mode) {
+    if (mode === this.mode) return;
+    this.mode = mode;
+    if (this.song) this.render(this.song);
   }
 
   render(song) {
@@ -59,10 +72,40 @@ export class Score {
       staffGroups: [{ type: 'brace', voiceIds: song.voices.map((v) => v.id) }],
     };
     this._observer.disconnect();
-    if (!this.renderer) this.renderer = new NotationRenderer({ container: this.container });
-    this.renderer.render(data);
+    this.container.classList.toggle('ribbon', this.mode === 'ribbon');
+    const wrapEl = this.container.closest('#scoreWrap');
+    if (wrapEl) wrapEl.classList.toggle('ribbon-view', this.mode === 'ribbon');
+    if (this.mode === 'ribbon') {
+      // One long system: render at an effectively-infinite width, measure the
+      // natural content extent, then re-render tight so the viewBox hugs it.
+      if (this.renderer) { this.renderer.clear(); }
+      this.renderer = new NotationRenderer({ container: this.container, width: 200000 });
+      this.renderer.render(data);
+      const natural = this._contentRightEdge();
+      this.renderer.clear();
+      this.renderer = new NotationRenderer({ container: this.container, width: natural + 80 });
+      this.renderer.render(data);
+    } else {
+      if (this.renderer) { this.renderer.clear(); }
+      this.renderer = new NotationRenderer({ container: this.container });
+      this.renderer.render(data);
+    }
     this._decorate();
     this._observer.observe(this.container, { childList: true, subtree: false });
+  }
+
+  /** Rightmost extent of staff furniture in the current SVG (internal units). */
+  _contentRightEdge() {
+    const svg = this.container.querySelector('svg');
+    let right = 1000;
+    if (!svg) return right;
+    for (const g of svg.querySelectorAll('.staff[data-staff-id], [data-voice-id]')) {
+      try {
+        const bb = g.getBBox();
+        right = Math.max(right, bb.x + bb.width);
+      } catch { /* detached */ }
+    }
+    return right;
   }
 
   setVerse(filter) {
@@ -112,9 +155,31 @@ export class Score {
       }
     }
     for (const list of this.noteIndex.values()) list.sort((a, b) => a.beat - b.beat);
+    // Anchor x positions (content-relative px) for smooth ribbon follow.
+    this._anchors = [];
+    const scoreRect = this.container.getBoundingClientRect();
+    const soprano = this.noteIndex.get('soprano') || [];
+    for (const { el, beat } of soprano) {
+      const r = el.getBoundingClientRect();
+      this._anchors.push({ beat, x: r.left + r.width / 2 - scoreRect.left });
+    }
     // (no per-staff part labels in close score — the colored chips are the legend)
     this._applyLoopRange();
     if (this.lastBeat >= 0) this.setCursor(this.lastBeat, true);
+  }
+
+  /** Interpolated content-relative x for a beat (ribbon follow). */
+  _xForBeat(beat) {
+    const a = this._anchors;
+    if (!a || !a.length) return 0;
+    if (beat <= a[0].beat) return a[0].x;
+    for (let i = 0; i < a.length - 1; i++) {
+      if (beat < a[i + 1].beat) {
+        const t = (beat - a[i].beat) / (a[i + 1].beat - a[i].beat);
+        return a[i].x + t * (a[i + 1].x - a[i].x);
+      }
+    }
+    return a[a.length - 1].x;
   }
 
   _addPartLabels(svg) {
@@ -175,7 +240,15 @@ export class Score {
         if (!scrollTarget) scrollTarget = el;
       }
     }
-    if (scrollTarget) this._autoScroll(scrollTarget);
+    if (this.mode === 'ribbon') this._followRibbon(beat);
+    else if (scrollTarget) this._autoScroll(scrollTarget);
+  }
+
+  _followRibbon(beat) {
+    if (performance.now() < this._userScrollUntil) return;
+    const wrap = this.container.closest('#scoreWrap') || this.container;
+    const target = this._xForBeat(beat) - wrap.clientWidth * 0.35;
+    wrap.scrollLeft = Math.max(0, target);
   }
 
   /** Tint the notes inside the A-B loop range (pass nulls to clear). */
