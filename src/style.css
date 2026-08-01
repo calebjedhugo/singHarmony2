@@ -180,8 +180,7 @@ body {
 
 /* lyrics render inside the soprano's group but should read as ink, not voice color */
 #score .lyric, #score .lyric-verse-number { color: var(--ink); }
-#score .lyric text { font-size: 16px; font-family: Georgia, serif; }
-#score .lyric-verse-number text { font-size: 13px; }
+#score .lyric text { font-family: Georgia, serif; }
 #score .lyric-melisma { color: var(--ink-soft); }
 
 /* voice coloring — notation glyphs draw with currentColor */

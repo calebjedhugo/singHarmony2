@@ -191,8 +191,25 @@ function setMode(mode, save) {
   if (save) localStorage.setItem('sh-score-mode', mode);
 }
 modeBtn.addEventListener('click', () => setMode(score.mode === 'ribbon' ? 'page' : 'ribbon', true));
+// Orientation/viewport changes mid-anything: re-measure cursor anchors, and —
+// unless the user explicitly chose a mode — switch page/ribbon to match the
+// new orientation. Playback itself never depends on layout, so audio and the
+// beat clock sail through; the score re-renders around them.
+let resizeTimer = null;
 window.addEventListener('resize', () => {
-  requestAnimationFrame(() => score.song && score._decorate());
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    if (!score.song) return;
+    const saved = localStorage.getItem('sh-score-mode');
+    const want = saved || defaultMode();
+    if (want !== score.mode) {
+      setMode(want, false);
+    } else if (score.mode === 'ribbon') {
+      score.render(score.song); // re-fit the ribbon height to the new viewport
+    } else {
+      requestAnimationFrame(() => score._decorate());
+    }
+  }, 150);
 });
 
 // A-B loop

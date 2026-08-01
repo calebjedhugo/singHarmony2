@@ -157,6 +157,7 @@ export class Score {
     for (const list of this.noteIndex.values()) list.sort((a, b) => a.beat - b.beat);
     // Anchor x positions (content-relative px) for smooth ribbon follow.
     this._anchors = [];
+    this._lastMeasure = -1;
     const scoreRect = this.container.getBoundingClientRect();
     const soprano = this.noteIndex.get('soprano') || [];
     for (const { el, beat } of soprano) {
@@ -246,9 +247,32 @@ export class Score {
 
   _followRibbon(beat) {
     if (performance.now() < this._userScrollUntil) return;
+    // Measure-snap: hold still within a measure, then flick the newly-reached
+    // measure flush to the left edge at each barline.
+    const [num, den] = this.song.timeSignature;
+    const measureBeats = num * (4 / den);
+    const measure = Math.floor(beat / measureBeats + 1e-6);
+    if (measure === this._lastMeasure) return;
+    this._lastMeasure = measure;
     const wrap = this.container.closest('#scoreWrap') || this.container;
-    const target = this._xForBeat(beat) - wrap.clientWidth * 0.35;
-    wrap.scrollLeft = Math.max(0, target);
+    const target = Math.max(0, this._xForBeat(measure * measureBeats) - 30);
+    this._flickTo(wrap, target);
+  }
+
+  /** Ease-out scroll tween. setTimeout-driven — native smooth scrollTo is
+   *  unreliable across engines, and rAF stalls in unfocused tabs. */
+  _flickTo(wrap, target, ms = 380) {
+    if (this._flickTimer) clearTimeout(this._flickTimer);
+    const from = wrap.scrollLeft;
+    const delta = target - from;
+    if (Math.abs(delta) < 1) return;
+    const t0 = performance.now();
+    const step = () => {
+      const t = Math.min(1, (performance.now() - t0) / ms);
+      wrap.scrollLeft = from + delta * (1 - (1 - t) ** 3);
+      if (t < 1) this._flickTimer = setTimeout(step, 16);
+    };
+    step();
   }
 
   /** Tint the notes inside the A-B loop range (pass nulls to clear). */
