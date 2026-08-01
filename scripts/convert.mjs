@@ -138,6 +138,25 @@ function parseSplitLength(s) {
   return { length, dotted, beats: (4 / den) * (dotted ? 1.5 : 1) };
 }
 
+// Total sounding duration of a same-pitch tied chain starting at notes[i]
+// (or just that note's own length if it isn't a tie start), plus the index
+// of its last piece. A note can already be notated as several tied pieces
+// purely because its onset crosses a barline (e.g. a quarter note starting
+// on the last eighth of a 6/8 bar) — independent of any lyric need — so a
+// "splits" target must be matched against the chain's true combined
+// duration, not just its first notated piece.
+function tiedChain(notes, i) {
+  let total = noteBeats(notes[i]);
+  let end = i;
+  while (notes[end].tie === 'start' || notes[end].tie === 'continue') {
+    if (end + 1 >= notes.length) break;
+    end += 1;
+    total += noteBeats(notes[end]);
+    if (notes[end].tie === 'stop') break;
+  }
+  return { total, end };
+}
+
 // Apply an optional lyrics-file "splits" directive: divide the note at a given
 // (pre-split) soprano slot into several same-pitch, untied notes of the given
 // lengths, in each listed voice — matched by beat position, not array index, so
@@ -152,13 +171,18 @@ function applySplits(voices, splits, warnings) {
   // Soprano slot list computed ONCE against the pre-split notes, so each
   // spec's "slot" index is stable regardless of the order splits are applied
   // in (splitting only inserts notes; it never changes beat positions before
-  // the split point).
+  // the split point). A slot's "dur" is its full tied-chain duration (see
+  // tiedChain), so a barline-forced tie doesn't misreport it as just its
+  // first notated piece.
   const origSlots = [];
   {
     let cur = 0;
-    for (const n of soprano.notes) {
+    for (let i = 0; i < soprano.notes.length; i++) {
+      const n = soprano.notes[i];
       const dur = noteBeats(n);
-      if (n.pitch && n.tie !== 'continue' && n.tie !== 'stop') origSlots.push({ start: cur, dur });
+      if (n.pitch && n.tie !== 'continue' && n.tie !== 'stop') {
+        origSlots.push({ start: cur, dur: tiedChain(soprano.notes, i).total });
+      }
       cur += dur;
     }
   }
@@ -177,6 +201,7 @@ function applySplits(voices, splits, warnings) {
       if (!v) { warnings.push(`split: voice "${voiceId}" not found`); continue; }
       let cur = 0;
       let matchIdx = -1;
+      let matchLen = 1;
       let foundOnset = false;
       for (let i = 0; i < v.notes.length; i++) {
         const n = v.notes[i];
@@ -185,6 +210,18 @@ function applySplits(voices, splits, warnings) {
           foundOnset = true;
           if (Math.abs(dur - target.dur) < 1e-6 && n.tie !== 'continue' && n.tie !== 'stop' && n.tie !== 'start') {
             matchIdx = i;
+            matchLen = 1;
+          } else if (n.tie === 'start') {
+            // Already a tied chain (e.g. forced across a barline) — if its
+            // full combined duration matches the target, replace the whole
+            // chain rather than requiring it to be untied first.
+            const chain = tiedChain(v.notes, i);
+            if (Math.abs(chain.total - target.dur) < 1e-6) {
+              matchIdx = i;
+              matchLen = chain.end - i + 1;
+            } else {
+              warnings.push(`split: ${voiceId} note at beat ${target.start} is a ${chain.total}b tied chain, expected a single ${target.dur}b note (tied or not) — skipped`);
+            }
           } else {
             warnings.push(`split: ${voiceId} note at beat ${target.start} is ${dur}b${n.tie ? ` (tie:${n.tie})` : ''}, expected a single ${target.dur}b un-tied note — skipped`);
           }
@@ -202,7 +239,7 @@ function applySplits(voices, splits, warnings) {
         if (orig.pitch) nn.pitch = orig.pitch;
         return nn;
       });
-      v.notes.splice(matchIdx, 1, ...newNotes);
+      v.notes.splice(matchIdx, matchLen, ...newNotes);
     }
   }
 }

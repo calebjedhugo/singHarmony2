@@ -1,9 +1,12 @@
 {
   "slug": "the-old-rugged-cross",
+  "splits": [
+    { "slot": 12, "lengths": ["1/8", "1/8"], "voices": ["soprano", "alto", "tenor", "bass"] }
+  ],
   "verses": [
     [
       "On", "a", "hill", "far", "a-", "way", "stood", "an", "old", "rug-", "ged", "cross,",
-      "The", "em-", "blem", "of", "suff'r-", "ing", "and", "shame;",
+      "The", null, "em-", "blem", "of", "suff'r-", "ing", "and", "shame;",
       "And", "I", "love", "that", "old", "cross", "where", "the", "dear-", "est", "and", "best",
       "For", "a", "world", "of", "lost", "sinn'rs", "was", "slain.",
       "So", "I'll", "cher-", "ish", "the", "old", "rug-", "ged", "cross,",
@@ -12,8 +15,18 @@
       "And", "ex-", "change", "it", "some", "day", "for", "a", "crown."
     ],
     [
+      "O", "that", "old", "rug-", "ged", "cross,", "so", "de-", "spised", "by", "the", "world,",
+      "Has", "a", "won-", "drous", "at-", "trac-", "tion", "for", "me;",
+      "For", "the", "dear", "Lamb", "of", "God", "left", "His", "glo-", "ry", "a-", "bove",
+      "To", "bear", "it", "to", "dark", "Cal-", "va-", "ry.",
+      "So", "I'll", "cher-", "ish", "the", "old", "rug-", "ged", "cross,",
+      "Till", "my", "tro-", "phies", "at", "last", "I", "lay", "down;",
+      "I", "will", "cling", "to", "the", "old", "rug-", "ged", "cross,",
+      "And", "ex-", "change", "it", "some", "day", "for", "a", "crown."
+    ],
+    [
       "In", "that", "old", "rug-", "ged", "cross,", "stained", "with", "blood", "so", "di-", "vine,",
-      "A", "won-", "drous", "beau-", "ty", "I", "see,", null,
+      "A", null, "won-", "drous", "beau-", "ty", "I", "see,", null,
       "For", "'twas", "on", "that", "old", "cross", "Je-", "sus", "suf-", "fered", "and", "died,",
       "To", "par-", "don", "and", "sanc-", "ti-", "fy", "me.",
       "So", "I'll", "cher-", "ish", "the", "old", "rug-", "ged", "cross,",
@@ -23,7 +36,7 @@
     ],
     [
       "To", "the", "old", "rug-", "ged", "cross", "I", "will", "ev-", "er", "be", "true;",
-      "Its", "shame", "and", "re-", "proach", "glad-", "ly", "bear;",
+      "Its", null, "shame", "and", "re-", "proach", "glad-", "ly", "bear;",
       "Then", "He'll", "call", "me", "some", "day", "to", "my", "home", "far", "a-", "way,",
       "Where", "His", "glo-", "ry", "for-", "ev'r", "I'll", "share.",
       "So", "I'll", "cher-", "ish", "the", "old", "rug-", "ged", "cross,",

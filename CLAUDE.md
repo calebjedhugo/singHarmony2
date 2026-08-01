@@ -32,6 +32,28 @@ npm run convert              # regenerate public/songs/ from legacy data
   reflow, so ALL decoration (labels, cursor index, mute classes) re-applies via
   MutationObserver. Voice coloring is pure CSS on `[data-voice-id]`.
 
+## Lyrics pipeline
+
+- `lyrics/<slug>.json`: `{"slug", "verses": [[...], ...]}` — one inner array per
+  verse, one entry per soprano "slot" (pitched note, tie ∉ {continue, stop});
+  string = syllable (trailing hyphen if word continues), null = melisma.
+  Optional keys:
+  - `"splits"`: `[{slot, lengths: ["1/4","1/4"], voices: [...]}]` — divides a
+    long note into same-pitch untied notes (matched by beat in each listed
+    voice) so later verses can carry an extra syllable where verse 1 sings a
+    melisma. Image-verified per song (Holy Holy Holy, The Old Rugged Cross).
+  - `"voiceLyrics"`: `{"bass": [entries]}` — single per-voice text line aligned
+    to THAT voice's slots (the It Is Well tenor/bass echo). Data-correct
+    encoding; never fake simultaneous text as an extra verse.
+- Converter validates every verse length against the slot count; mismatches are
+  skipped with a warning, never forced.
+- Provenance: aligned by Sonnet agents from the legacy lyric pages + rhythm
+  data (NOT images — image reading is the expensive path). Spot-audits against
+  the original engraved PNGs (`calebhugo-com/sing-harmony-public/Music/<Title>/`)
+  validated the method (Amazing Grace: 175/175 syllable placements correct).
+  Known content notes: capitalization/punctuation is modern sentence-case, not
+  the engraving's verse-initial-only style — deliberate.
+
 ## Gotchas
 
 - resound-notation renders ONE VOICE PER STAFF (no shared-staff SATB). The
