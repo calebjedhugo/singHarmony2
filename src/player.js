@@ -11,6 +11,8 @@ import { Piano } from 'resound-sound';
 const VOICE_IDS = ['soprano', 'alto', 'tenor', 'bass'];
 // Dynamic scales with how many voices sing: solo part loud, full choir soft.
 const VELOCITY_BY_ACTIVE = [0.95, 0.8, 0.65, 0.5];
+// Piano velocity layers (ascending) — must match what main.js passes to initInstruments.
+export const VELOCITY_LAYERS = VELOCITY_BY_ACTIVE.slice().reverse();
 const TICK_MS = 25;
 
 function beatsOf(note) {
@@ -80,13 +82,21 @@ export class Player {
 
   async ensurePiano() {
     if (!this.piano) {
-      this.piano = new Piano('sing-harmony', { layers: VELOCITY_BY_ACTIVE.slice().reverse() });
+      // fallback path (library without initInstruments): construct lazily
+      // inside the user gesture so the AudioContext starts running
+      this.piano = new Piano('sing-harmony', { layers: VELOCITY_LAYERS });
     }
     const need = this.uniquePitches().filter((p) => !this.warmed.has(p));
     if (need.length) {
       await this.piano.warm(need);
       need.forEach((p) => this.warmed.add(p));
     }
+  }
+
+  /** Fire-and-forget warm of the loaded song — call when the piano already
+   *  exists (eager init path), so play() finds everything cached. */
+  warmAhead() {
+    if (this.piano && this.song) this.ensurePiano();
   }
 
   tempoMultiplier(beat) {

@@ -1,5 +1,6 @@
 import './style.css';
-import { Player } from './player.js';
+import * as ResoundSound from 'resound-sound';
+import { Player, VELOCITY_LAYERS } from './player.js';
 import { Score } from './score.js';
 
 const $ = (sel) => document.querySelector(sel);
@@ -21,6 +22,18 @@ const VOICES = [
 ];
 
 const player = new Player();
+
+// Eager piano init (resound-sound >= the initInstruments feature): create the
+// shared piano at page load — warming needs no user gesture; the library arms
+// a one-time gesture listener to resume the AudioContext for live output.
+if (ResoundSound.initInstruments) {
+  ResoundSound.initInstruments({ piano: { id: 'sing-harmony', layers: VELOCITY_LAYERS } })
+    .then(({ piano }) => {
+      player.piano = piano;
+      player.warmAhead(); // covers a song opened before init resolved
+    })
+    .catch(() => { /* fallback: player constructs lazily on first play */ });
+}
 const score = new Score($('#score'), { onSeek: (beat) => player.seek(beat) });
 let songIndex = [];
 let current = null;
@@ -64,6 +77,7 @@ async function openSong(slug, push) {
   const song = await res.json();
   current = song;
   player.load(song);
+  player.warmAhead(); // pre-render this song's pitches before the play tap
   $('#songTitle').textContent = song.title;
   $('#songMeta').textContent =
     `${song.keySignature} major · ${song.timeSignature[0]}/${song.timeSignature[1]}`;
