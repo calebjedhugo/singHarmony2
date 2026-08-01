@@ -3,6 +3,17 @@
 Rewrite of the sing-harmony hymn app on resound-notation + resound-sound.
 Live at https://sing-harmony-beta.calebhugo.com (Pi port 8101).
 
+**Both resound deps are local `file:` links** (../resound-notation,
+../resound-sound) pending npm publishes of: two-voices-per-staff, multi-verse
+lyrics, lyric spacing/baseline/size, tie flattening (notation) and
+initInstruments eager init (sound). After publishing, switch package.json back
+to registry versions. Remember `npm run build` in each lib repo before an app
+build — Vite bundles from their dist/.
+
+Key UX: page/ribbon score modes (ribbon = one long system, measure-snap
+horizontal scroll; default on phone landscape), verse picker, A-B loop,
+per-voice mute, eager piano warm-up at page load (~2ms play-tap latency).
+
 ## Commands
 
 ```bash
