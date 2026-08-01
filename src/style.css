@@ -88,6 +88,15 @@ body {
 #songTitle { font-family: Georgia, serif; font-size: 1.5rem; margin: 0; }
 #songMeta { color: var(--ink-soft); font-size: 0.85rem; margin-top: 2px; }
 
+#verseChips { display: flex; justify-content: center; gap: 5px; margin-top: 8px; flex-wrap: wrap; }
+.verse-chip {
+  min-width: 30px; padding: 4px 9px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--card); color: var(--ink-soft);
+  font-size: 0.75rem;
+}
+.verse-chip:hover { border-color: var(--accent); color: var(--accent); }
+.verse-chip.verse-on { background: var(--ink); border-color: var(--ink); color: #f5efe4; }
+
 #controls {
   display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
   gap: 14px; padding: 10px 16px 14px;

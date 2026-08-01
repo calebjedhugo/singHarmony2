@@ -75,10 +75,12 @@ async function openSong(slug, push) {
   backBtn.hidden = false;
   player.clearLoop();
   setPlayingUI(false);
+  score.verseFilter = 'all';
   score.render(song);
   score.setMuted(player.muted);
   score.setCursor(player.beat, true);
   refreshLoopUI();
+  buildVerseChips();
   if (push) history.pushState({ slug }, '', `?song=${slug}`);
   document.title = `${song.title} · How to Sing Harmony`;
 }
@@ -173,6 +175,29 @@ $('#tempoReset').addEventListener('click', () => {
   player.bpm = current.tempo;
   tempoVal.textContent = String(current.tempo);
 });
+
+// verse picker (only for songs with 2+ verses)
+const verseChipsWrap = $('#verseChips');
+function buildVerseChips() {
+  const count = score.verseCount();
+  verseChipsWrap.innerHTML = '';
+  verseChipsWrap.toggleAttribute('hidden', count < 2);
+  if (count < 2) return;
+  const options = [{ label: 'All verses', value: 'all' }];
+  for (let i = 0; i < count; i++) options.push({ label: `${i + 1}`, value: i });
+  for (const opt of options) {
+    const b = document.createElement('button');
+    b.className = 'verse-chip';
+    b.textContent = opt.label;
+    b.classList.toggle('verse-on', score.verseFilter === opt.value);
+    b.addEventListener('click', () => {
+      score.setVerse(opt.value);
+      for (const el of verseChipsWrap.children) el.classList.remove('verse-on');
+      b.classList.add('verse-on');
+    });
+    verseChipsWrap.appendChild(b);
+  }
+}
 
 // voice chips
 const chipsWrap = $('#voiceChips');

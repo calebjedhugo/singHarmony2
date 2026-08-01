@@ -20,6 +20,7 @@ export class Score {
     this.onSeek = onSeek;
     this.renderer = null;
     this.song = null;
+    this.verseFilter = 'all'; // 'all' | 0-based verse index
     this.noteIndex = new Map(); // voiceId -> sorted [{el, beat, dur}]
     this.activeEls = [];
     this.lastBeat = -1;
@@ -44,7 +45,16 @@ export class Score {
         id: v.id,
         staff: STAFF_MAP[v.id]?.staff,
         clef: STAFF_MAP[v.id]?.clef ?? v.clef,
-        notes: v.notes,
+        // verse filtering applies only to the soprano's verse stack; other
+        // voices' lyric lines (e.g. the It Is Well bass echo) sing every verse
+        notes: this.verseFilter === 'all' || v.id !== 'soprano' ? v.notes : v.notes.map((n) => {
+          if (!Array.isArray(n.lyric)) {
+            // bare string = verse 1; other verses show nothing
+            return this.verseFilter === 0 || n.lyric === undefined ? n : { ...n, lyric: undefined };
+          }
+          const syl = n.lyric[this.verseFilter];
+          return { ...n, lyric: syl || undefined };
+        }),
       })),
       staffGroups: [{ type: 'brace', voiceIds: song.voices.map((v) => v.id) }],
     };
@@ -53,6 +63,22 @@ export class Score {
     this.renderer.render(data);
     this._decorate();
     this._observer.observe(this.container, { childList: true, subtree: false });
+  }
+
+  setVerse(filter) {
+    this.verseFilter = filter;
+    if (this.song) this.render(this.song);
+  }
+
+  /** Highest verse count carried by any note (0 = no lyrics). */
+  verseCount() {
+    let max = 0;
+    if (!this.song) return 0;
+    for (const n of this.song.voices[0].notes) {
+      if (Array.isArray(n.lyric)) max = Math.max(max, n.lyric.length);
+      else if (n.lyric) max = Math.max(max, 1);
+    }
+    return max;
   }
 
   destroy() {
