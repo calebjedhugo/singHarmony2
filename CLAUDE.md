@@ -25,6 +25,14 @@ npm run convert              # regenerate public/songs/ from legacy data
 
 ## Architecture
 
+**GOVERNING PRINCIPLE (Caleb, 2026-07-21): the SAME untransformed note arrays
+feed both resound-notation's render() and resound-sound's play(). NO app-side
+translation layer may interpret the data.** src/player.js's current event
+extraction (tie merging, dotted math, own beat clock) is a violation being
+migrated into resound-sound as schema-native multi-voice playback — see the
+pending chip / SPEC work. Never add new data interpretation to the app; extend
+the libraries instead.
+
 - **Song JSON** (`public/songs/*.json`): shared resound schema. Pitches are TRUE
   sounding pitch (`C4` scientific); the app transposes tenor +1 octave for
   display only (`displayOctave`). All timing in notated quarter-note beats —
