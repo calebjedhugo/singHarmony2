@@ -121,6 +121,32 @@ describe('Player piano handling', () => {
     expect(eager.warm).toHaveBeenCalledWith(['C5', 'C3']);
   });
 
+  it('warms the whole catalog range up front, in flats as well as sharps', async () => {
+    // The page-load warm-up covers C2-B5 so no hymn has anything left to
+    // render at the play tap. Song data spells accidentals as flats, so a
+    // range marked only in sharps would re-render half the black keys.
+    const player = new Player();
+
+    await player.warmUp();
+
+    expect(player.piano).not.toBeNull();
+    expect(player.warmed.has('Eb4')).toBe(true);
+    expect(player.warmed.has('D#4')).toBe(true);
+    expect(player.warmed.has('C2') && player.warmed.has('B5')).toBe(true);
+  });
+
+  it('adopts a song that was opened while it was still warming', async () => {
+    // Opening a hymn calls warmAhead(), which no-ops until a piano exists;
+    // the warm-up has to pick that song up when it finishes, or the first tap
+    // pays for the whole hymn.
+    const player = new Player();
+    player.load(song());
+
+    await player.warmUp();
+
+    expect(player.seq.instrument).toBe(player.piano);
+  });
+
   it('sounds the loaded voices as the clock crosses their onsets', async () => {
     jest.useFakeTimers();
     const player = new Player();

@@ -79,6 +79,7 @@ body {
   background: var(--paper); white-space: nowrap;
 }
 .badge-cat { color: var(--accent); border-color: var(--accent); }
+.list-error { text-align: center; color: var(--ink-soft); padding: 24px 8px; }
 .list-footer { text-align: center; color: var(--ink-soft); font-size: 0.8rem; margin-top: 28px; }
 .list-footer a { color: var(--accent); }
 
@@ -213,11 +214,6 @@ body {
 
 /* A-B loop: dim everything outside the looped passage */
 #score.has-loop [data-beat]:not(.in-loop) { opacity: 0.25; }
-
-.part-label {
-  font-family: Georgia, serif; font-weight: 700;
-  fill: currentColor; opacity: 0.85;
-}
 
 #status {
   position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);

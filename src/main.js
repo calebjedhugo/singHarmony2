@@ -1,340 +1,97 @@
+/**
+ * App shell: boots the player and the score, wires the three UI modules to
+ * them, and routes between the song list and a song (`?song=slug`).
+ */
 import './style.css';
-import * as ResoundSound from 'resound-sound';
-import { Player, VELOCITY_LAYERS } from './player.js';
+import { fetchIndex, fetchSong } from './catalog.js';
+import { Player } from './player.js';
 import { Score } from './score.js';
+import { createControls } from './ui/controls.js';
+import { createLayout } from './ui/layout.js';
+import { createSongList } from './ui/songList.js';
 
 const $ = (sel) => document.querySelector(sel);
 const listView = $('#listView');
 const songView = $('#songView');
-const songListEl = $('#songList');
-const searchEl = $('#search');
 const backBtn = $('#backBtn');
-const playBtn = $('#playBtn');
-const tempoEl = $('#tempo');
-const tempoVal = $('#tempoVal');
-const statusEl = $('#status');
-
-const VOICES = [
-  { id: 'soprano', label: 'Soprano' },
-  { id: 'alto', label: 'Alto' },
-  { id: 'tenor', label: 'Tenor' },
-  { id: 'bass', label: 'Bass' },
-];
 
 const player = new Player();
-
-// Eager piano init (resound-sound >= the initInstruments feature): create the
-// shared piano at page load and warm the FULL chromatic range C2-B5 while the
-// user is still on the song list — every hymn's pitches are covered before
-// any song is even opened. Warming uses OfflineAudioContext (no gesture
-// needed); the library arms a one-time gesture listener for live output.
-if (ResoundSound.initInstruments) {
-  const ALL_PITCHES = [];
-  const FLAT_OF = { 'C#': 'Db', 'D#': 'Eb', 'F#': 'Gb', 'G#': 'Ab', 'A#': 'Bb' };
-  for (let oct = 2; oct <= 5; oct++) {
-    for (const pc of ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']) {
-      ALL_PITCHES.push(pc + oct);
-    }
-  }
-  ResoundSound.initInstruments({
-    piano: { id: 'sing-harmony', layers: VELOCITY_LAYERS, pitches: ALL_PITCHES },
-  })
-    .then(({ piano }) => {
-      player.piano = piano;
-      // mark everything warmed under both spellings (song data uses flats)
-      for (const p of ALL_PITCHES) {
-        player.warmed.add(p);
-        const m = /^([A-G]#)(\d)$/.exec(p);
-        if (m) player.warmed.add(FLAT_OF[m[1]] + m[2]);
-      }
-    })
-    .catch(() => { /* fallback: player constructs lazily on first play */ });
-}
 const score = new Score($('#score'), {
   onSeek: (beat) => player.seek(beat),
   // drag-scrub in ribbon mode: playback start snaps to the nearest measure
   onScrub: (beat) => player.seek(beat),
 });
-let songIndex = [];
-let current = null;
+const controls = createControls({ player, score });
+const layout = createLayout({ score });
+const songList = createSongList({
+  listEl: $('#songList'),
+  searchEl: $('#search'),
+  onOpen: (slug) => openSong(slug, true),
+});
 
 player.onTick = (beat) => {
   // lead the highlight by 100ms so its transition is fully in at note onset
   const lead = player.playing ? 0.1 / player.secPerBeat(beat) : 0;
   score.setCursor(beat + lead);
 };
-player.onEnd = () => setPlayingUI(false);
 
-// ---------- song list ----------
-async function loadIndex() {
-  const res = await fetch('/songs/index.json');
-  songIndex = (await res.json()).songs;
-  renderList();
-}
-
-function renderList() {
-  const q = searchEl.value.trim().toLowerCase();
-  songListEl.innerHTML = '';
-  for (const s of songIndex) {
-    if (q && !s.title.toLowerCase().includes(q)) continue;
-    const li = document.createElement('li');
-    const btn = document.createElement('button');
-    btn.className = 'song-item';
-    btn.innerHTML = `
-      <span class="song-title">${s.title}</span>
-      <span class="song-badges">
-        ${s.category ? `<span class="badge badge-cat">${s.category}</span>` : ''}
-        <span class="badge">${s.key}</span>
-        <span class="badge">${s.timeSignature[0]}/${s.timeSignature[1]}</span>
-      </span>`;
-    btn.addEventListener('click', () => openSong(s.slug, true));
-    li.appendChild(btn);
-    songListEl.appendChild(li);
-  }
-}
-searchEl.addEventListener('input', renderList);
-
-// ---------- song view ----------
+// ---------- views ----------
 async function openSong(slug, push) {
-  const res = await fetch(`/songs/${slug}.json`);
-  if (!res.ok) return showList(push);
-  const song = await res.json();
-  current = song;
+  const song = await fetchSong(slug);
+  if (!song) { // a stale bookmark or a hymn that was renamed
+    showList(push);
+    return;
+  }
   player.load(song);
   player.warmAhead(); // pre-render this song's pitches before the play tap
   $('#songTitle').textContent = song.title;
-  $('#songMeta').textContent =
-    `${song.keySignature} major · ${song.timeSignature[0]}/${song.timeSignature[1]}`;
-  tempoEl.value = song.tempo;
-  tempoVal.textContent = `${song.tempo}`;
-  player.bpm = song.tempo;
-  listView.hidden = true;
-  songView.hidden = false;
-  backBtn.hidden = false;
-  player.clearLoop();
-  setPlayingUI(false);
+  $('#songMeta').textContent = `${song.keySignature} · ${song.timeSignature[0]}/${song.timeSignature[1]}`;
   score.verseFilter = 'all';
-  score.mode = defaultMode(); // set directly pre-render (setMode would re-render the old song)
-  applyModeUI(score.mode);
+  layout.prepareMode(); // before render: setMode() would re-render the old song
   score.render(song);
   score.setMuted(player.muted);
   score.setCursor(player.beat, true);
-  refreshLoopUI();
-  buildVerseChips();
-  const menuTitle = document.querySelector('#menuPanel .menu-title');
-  menuTitle.textContent = song.title;
-  menuTitle.hidden = false;
-  closeMenu();
+  controls.showSong(song);
+  layout.showSong(song);
+  listView.hidden = true;
+  songView.hidden = false;
+  backBtn.hidden = false;
   if (push) history.pushState({ slug }, '', `?song=${slug}`);
   document.title = `${song.title} · How to Sing Harmony`;
-  updateRotateHint();
 }
 
 function showList(push) {
-  player.pause();
-  setPlayingUI(false);
-  current = null;
+  controls.hideSong();
+  layout.showList();
   listView.hidden = false;
   songView.hidden = true;
   backBtn.hidden = true;
   if (push) history.pushState({}, '', location.pathname);
   document.title = 'How to Sing Harmony';
-  updateRotateHint();
 }
 
-backBtn.addEventListener('click', () => showList(true));
-$('#backBtn2').addEventListener('click', () => { closeMenu(); showList(true); });
-
-// hamburger menu (mobile chrome)
-const menuBtn = $('#menuBtn');
-function closeMenu() { document.body.classList.remove('menu-open'); }
-menuBtn.addEventListener('click', (e) => {
-  e.stopPropagation();
-  document.body.classList.toggle('menu-open');
-});
-document.addEventListener('click', (e) => {
-  if (!document.body.classList.contains('menu-open')) return;
-  if (e.target.closest('#menuPanel') || e.target.closest('#menuBtn')) return;
-  closeMenu();
-});
-
-// Rotate-to-landscape hint on small portrait touch screens (the score wants width)
-const rotateHint = document.createElement('div');
-rotateHint.id = 'rotateHint';
-rotateHint.hidden = true;
-rotateHint.innerHTML = '<div><span class="phone-icon">&#128241;</span>' +
-  'Rotate your phone sideways&mdash;<br>the music is much bigger in landscape.' +
-  '<br><button type="button">Keep portrait</button></div>';
-document.body.appendChild(rotateHint);
-rotateHint.querySelector('button').addEventListener('click', () => {
-  sessionStorage.setItem('sh-portrait-ok', '1');
-  rotateHint.hidden = true;
-});
-function updateRotateHint() {
-  const small = Math.min(window.innerWidth, window.innerHeight) < 500;
-  const portrait = window.innerHeight > window.innerWidth;
-  const touch = 'ontouchstart' in window;
-  const dismissed = sessionStorage.getItem('sh-portrait-ok');
-  rotateHint.hidden = !(small && portrait && touch && !dismissed && !songView.hidden);
+// two ways back: the topbar arrow on desktop, the menu link on mobile
+for (const el of [backBtn, $('#backBtn2')]) {
+  el.addEventListener('click', () => showList(true));
 }
-window.addEventListener('resize', updateRotateHint);
-window.addEventListener('orientationchange', updateRotateHint);
-window.addEventListener('popstate', () => route(false));
 
+// ---------- routing ----------
 function route(push) {
   const slug = new URLSearchParams(location.search).get('song');
   if (slug) openSong(slug, push);
   else showList(push);
 }
 
-// ---------- controls ----------
-function setPlayingUI(playing) {
-  // SVG elements don't implement the `hidden` IDL property — toggle the attribute
-  playBtn.querySelector('.ic-play').toggleAttribute('hidden', playing);
-  playBtn.querySelector('.ic-pause').toggleAttribute('hidden', !playing);
-  playBtn.classList.toggle('is-playing', playing);
-}
-
-async function togglePlay() {
-  if (!current) return;
-  if (player.playing) {
-    player.pause();
-    setPlayingUI(false);
-  } else {
-    statusEl.textContent = 'Preparing piano…';
-    statusEl.hidden = false;
-    try {
-      await player.play();
-    } finally {
-      statusEl.hidden = true;
-    }
-    setPlayingUI(true);
-  }
-}
-
-playBtn.addEventListener('click', togglePlay);
-$('#rewindBtn').addEventListener('click', () => player.rewind());
-
-// page/ribbon score mode — ribbon defaults on for phone landscape
-const modeBtn = $('#modeBtn');
-function defaultMode() {
-  const saved = localStorage.getItem('sh-score-mode');
-  if (saved === 'page' || saved === 'ribbon') return saved;
-  return window.innerHeight < 500 && window.innerWidth > window.innerHeight ? 'ribbon' : 'page';
-}
-function applyModeUI(mode) {
-  modeBtn.querySelector('.ic-ribbon').toggleAttribute('hidden', mode === 'ribbon');
-  modeBtn.querySelector('.ic-page').toggleAttribute('hidden', mode !== 'ribbon');
-}
-function setMode(mode, save) {
-  score.setMode(mode); // re-renders if a song is loaded
-  applyModeUI(mode);
-  if (save) localStorage.setItem('sh-score-mode', mode);
-}
-modeBtn.addEventListener('click', () => setMode(score.mode === 'ribbon' ? 'page' : 'ribbon', true));
-// Orientation/viewport changes mid-anything: re-measure cursor anchors, and —
-// unless the user explicitly chose a mode — switch page/ribbon to match the
-// new orientation. Playback itself never depends on layout, so audio and the
-// beat clock sail through; the score re-renders around them.
-let resizeTimer = null;
-window.addEventListener('resize', () => {
-  clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(() => {
-    if (!score.song) return;
-    const saved = localStorage.getItem('sh-score-mode');
-    const want = saved || defaultMode();
-    if (want !== score.mode) {
-      setMode(want, false);
-    } else if (score.mode === 'ribbon') {
-      score.render(score.song); // re-fit the ribbon height to the new viewport
-    } else {
-      requestAnimationFrame(() => score._decorate());
-    }
-  }, 150);
-});
-
-// A-B loop
-const loopA = $('#loopA');
-const loopB = $('#loopB');
-const loopClear = $('#loopClear');
-function refreshLoopUI() {
-  loopA.classList.toggle('loop-set', player.loopStart !== null);
-  loopB.classList.toggle('loop-set', player.loopEnd !== null);
-  loopClear.toggleAttribute('hidden', player.loopStart === null && player.loopEnd === null);
-  score.setLoopRange(player.loopStart, player.looping ? player.loopEnd : null);
-}
-loopA.addEventListener('click', () => {
-  player.setLoopStart();
-  refreshLoopUI();
-});
-loopB.addEventListener('click', () => {
-  player.setLoopEnd();
-  player.seek(player.loopStart);
-  refreshLoopUI();
-});
-loopClear.addEventListener('click', () => {
-  player.clearLoop();
-  refreshLoopUI();
-});
-document.addEventListener('keydown', (e) => {
-  if (e.code === 'Space' && current && e.target.tagName !== 'INPUT') {
-    e.preventDefault();
-    togglePlay();
-  }
-});
-
-tempoEl.addEventListener('input', () => {
-  player.bpm = Number(tempoEl.value);
-  tempoVal.textContent = tempoEl.value;
-});
-$('#tempoReset').addEventListener('click', () => {
-  if (!current) return;
-  tempoEl.value = current.tempo;
-  player.bpm = current.tempo;
-  tempoVal.textContent = String(current.tempo);
-});
-
-// verse picker (only for songs with 2+ verses)
-const verseChipsWrap = $('#verseChips');
-function buildVerseChips() {
-  const count = score.verseCount();
-  verseChipsWrap.innerHTML = '';
-  verseChipsWrap.toggleAttribute('hidden', count < 2);
-  if (count < 2) return;
-  const options = [{ label: 'All verses', value: 'all' }];
-  for (let i = 0; i < count; i++) options.push({ label: `${i + 1}`, value: i });
-  for (const opt of options) {
-    const b = document.createElement('button');
-    b.className = 'verse-chip';
-    b.textContent = opt.label;
-    b.classList.toggle('verse-on', score.verseFilter === opt.value);
-    b.addEventListener('click', () => {
-      score.setVerse(opt.value);
-      for (const el of verseChipsWrap.children) el.classList.remove('verse-on');
-      b.classList.add('verse-on');
-    });
-    verseChipsWrap.appendChild(b);
-  }
-}
-
-// voice chips
-const chipsWrap = $('#voiceChips');
-for (const v of VOICES) {
-  const chip = document.createElement('button');
-  chip.className = `chip chip-${v.id} chip-on`;
-  chip.dataset.initial = v.label[0];
-  chip.innerHTML = `<span class="dot"></span><span class="chip-label">${v.label}</span>`;
-  chip.title = `Toggle ${v.label}`;
-  chip.addEventListener('click', () => {
-    const on = player.toggleMute(v.id);
-    chip.classList.toggle('chip-on', on);
-    score.setMuted(player.muted);
-  });
-  chipsWrap.appendChild(chip);
-}
+window.addEventListener('popstate', () => route(false));
 
 // ---------- boot ----------
-loadIndex().then(() => route(false));
+// Warm the piano across the whole catalog's range while the user is still on
+// the song list, so the first play tap has nothing left to render (~2ms).
+player.warmUp();
+fetchIndex()
+  .then((songs) => songList.setSongs(songs))
+  .catch(() => songList.showError('Could not load the hymn list. Check your connection and reload.'))
+  .finally(() => route(false));
 
 // debugging handle (also used by automated tests)
 window.__sh = { player, score };

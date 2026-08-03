@@ -9,19 +9,32 @@
  * What is left here is app policy: which piano to use and when to warm it,
  * the choir dynamic, and the A-B loop's two-button behavior.
  */
-import { Piano, Sequencer } from 'resound-sound';
+import { Piano, Sequencer, initInstruments } from 'resound-sound';
 
 // Dynamic scales with how many voices sing: solo part loud, full choir soft.
 const VELOCITY_BY_ACTIVE = [0.95, 0.8, 0.65, 0.5];
-// Piano velocity layers (ascending) — must match what main.js passes to initInstruments.
-export const VELOCITY_LAYERS = VELOCITY_BY_ACTIVE.slice().reverse();
+// Piano velocity layers, ascending.
+const VELOCITY_LAYERS = VELOCITY_BY_ACTIVE.slice().reverse();
 // Beats the cursor keeps running after the last onset, so the final chord
 // rings under a moving cursor instead of stopping dead on it.
 const TAIL_BEATS = 2;
+const PIANO_ID = 'sing-harmony';
+
+// Every hymn's pitches live inside C2-B5, so warming that range up front
+// covers the whole catalog before a song is even opened.
+const PITCH_CLASSES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const FLAT_OF = { 'C#': 'Db', 'D#': 'Eb', 'F#': 'Gb', 'G#': 'Ab', 'A#': 'Bb' };
+const CHROMATIC_RANGE = [2, 3, 4, 5].flatMap((oct) => PITCH_CLASSES.map((pc) => pc + oct));
+
+/** Both spellings of a sharp pitch — song data is written in flats. */
+const spellings = (pitch) => {
+  const m = /^([A-G]#)(\d)$/.exec(pitch);
+  return m ? [pitch, FLAT_OF[m[1]] + m[2]] : [pitch];
+};
 
 export class Player {
   constructor() {
-    this.piano = null; // set by main.js's eager init, or created on first play
+    this.piano = null; // set by warmUp(), or built lazily on the first play
     this.warmed = new Set();
     this.song = null;
     this.onTick = null; // (beat) => void
@@ -39,9 +52,8 @@ export class Player {
 
   load(song) {
     this.song = song;
-    this._a = null;
-    this._b = null;
     this.seq.load(song);
+    this.clearLoop(); // a different hymn never inherits the last one's loop
   }
 
   get playing() { return this.seq.playing; }
@@ -60,11 +72,29 @@ export class Player {
 
   secPerBeat(beat) { return this.seq.secondsPerBeat(beat); }
 
+  /**
+   * Build the shared piano at page load and pre-render the whole catalog's
+   * range while the user is still on the song list, so the first play tap is
+   * instant. Warming runs in an OfflineAudioContext (no gesture needed); the
+   * library arms its own one-time gesture listener for live output. Failure is
+   * not fatal — play() falls back to building the piano inside the tap.
+   */
+  async warmUp() {
+    try {
+      const { piano } = await initInstruments({
+        piano: { id: PIANO_ID, layers: VELOCITY_LAYERS, pitches: CHROMATIC_RANGE },
+      });
+      this.piano = piano;
+      for (const p of CHROMATIC_RANGE) for (const s of spellings(p)) this.warmed.add(s);
+      if (this.song) this.warmAhead(); // a song opened while we were warming
+    } catch { /* lazy path: ensurePiano() builds one on the first play */ }
+  }
+
   async ensurePiano() {
     if (!this.piano) {
-      // fallback path (eager initInstruments unavailable/failed): construct
-      // inside the user gesture so the AudioContext starts running
-      this.piano = new Piano('sing-harmony', { layers: VELOCITY_LAYERS });
+      // fallback path (warmUp unavailable/failed): construct inside the user
+      // gesture so the AudioContext starts running
+      this.piano = new Piano(PIANO_ID, { layers: VELOCITY_LAYERS });
     }
     this.seq.instrument = this.piano;
     const need = this.seq.pitches().filter((p) => !this.warmed.has(p));
@@ -86,8 +116,6 @@ export class Player {
   }
 
   pause() { this.seq.pause(); }
-
-  stop() { this.seq.stop(); }
 
   seek(beat) { this.seq.seek(beat); }
 
