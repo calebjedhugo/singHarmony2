@@ -18,7 +18,7 @@ per-voice mute, eager piano warm-up at page load (~2ms play-tap latency).
 
 ```bash
 npm run dev                  # Vite dev server
-npm test                     # jest (jsdom), 586 tests — RUN AFTER npm run convert
+npm test                     # jest (jsdom), 734 tests — RUN AFTER npm run convert
 npm run build                # build to dist/
 npm run convert              # regenerate public/songs/ from legacy data
 ./deploy.sh                  # build + rsync dist/ to the Pi
@@ -29,10 +29,15 @@ with `npm test`.** `scripts/songs.test.mjs` asserts the data contract both
 libraries depend on (voice lengths agree, nothing straddles a barline, pickups
 are filled exactly and start on real music, tie chains are well-formed, lyric
 verses match the soprano slot count). It is the only automatic check that a
-converter change didn't quietly break a hymn. `src/score.test.js` covers the
-measure grid against a real render; `src/player.test.js` covers the adapter's
-loop/mute/tempo policy. Playback and engraving behavior itself belongs to the
-libraries' own suites.
+converter change didn't quietly break a hymn. `src/songs.render.test.js` is
+its stronger half: it feeds all 74 songs to the REAL consumers (Score →
+NotationRenderer, and resound-sound's `buildTimeline`), so the libraries — not
+this repo's re-derived arithmetic — judge the data. Keep both: the renderer
+throws on a bad pickup, but resound-sound plays it silently, and only the
+timeline assertions catch audio that drifts from the page.
+`src/score.test.js` covers the measure grid against a real render;
+`src/player.test.js` covers the adapter's loop/mute/tempo policy. Playback and
+engraving behavior itself belongs to the libraries' own suites.
 
 ## Architecture
 
