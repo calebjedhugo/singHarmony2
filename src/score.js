@@ -164,15 +164,26 @@ export class Score {
       }
     }
     for (const list of this.noteIndex.values()) list.sort((a, b) => a.beat - b.beat);
-    // Anchor x positions (content-relative px) for smooth ribbon follow.
+    // Anchor positions (content-relative px) for ribbon follow + click-to-measure.
     this._anchors = [];
     this._lastMeasure = -1;
     const scoreRect = this.container.getBoundingClientRect();
-    const soprano = this.noteIndex.get('soprano') || [];
-    for (const { el, beat } of soprano) {
-      const r = el.getBoundingClientRect();
-      this._anchors.push({ beat, x: r.left + r.width / 2 - scoreRect.left });
+    for (const group of svg.querySelectorAll('[data-voice-id="soprano"][data-system-index]')) {
+      const sys = Number(group.getAttribute('data-system-index'));
+      const startMeasure = Number(group.getAttribute('data-start-measure') || 0);
+      const [tn, td] = this.song.timeSignature;
+      const sysStartBeat = startMeasure * tn * (4 / td);
+      for (const el of group.querySelectorAll('[data-beat]')) {
+        const r = el.getBoundingClientRect();
+        this._anchors.push({
+          beat: sysStartBeat + Number(el.getAttribute('data-beat')),
+          x: r.left + r.width / 2 - scoreRect.left,
+          y: r.top + r.height / 2 - scoreRect.top,
+          sys,
+        });
+      }
     }
+    this._anchors.sort((a, b) => a.beat - b.beat);
     // (no per-staff part labels in close score — the colored chips are the legend)
     this._applyLoopRange();
     if (this.lastBeat >= 0) this.setCursor(this.lastBeat, true);
@@ -217,10 +228,34 @@ export class Score {
     }
   }
 
+  /** Click anywhere in a measure → playback jumps to that measure's beat 1. */
   _handleClick(e) {
+    if (!this.onSeek || !this.song || !this._anchors || !this._anchors.length) return;
+    const [num, den] = this.song.timeSignature;
+    const measureBeats = num * (4 / den);
+    let beat;
     const el = e.target.closest('[data-beat]');
-    if (!el || !this.onSeek) return;
-    this.onSeek(Number(el.dataset.absBeat ?? el.getAttribute('data-beat')));
+    if (el && el.dataset.absBeat !== undefined) {
+      beat = Number(el.dataset.absBeat);
+    } else {
+      // empty-space click: nearest system by y, then last anchor left of the click
+      const rect = this.container.getBoundingClientRect();
+      const cx = e.clientX - rect.left;
+      const cy = e.clientY - rect.top;
+      let sys = null;
+      let bestDy = Infinity;
+      for (const a of this._anchors) {
+        const dy = Math.abs(a.y - cy);
+        if (dy < bestDy) { bestDy = dy; sys = a.sys; }
+      }
+      if (sys === null || bestDy > 400) return; // not on a system
+      const inSys = this._anchors.filter((a) => a.sys === sys);
+      const before = inSys.filter((a) => a.x <= cx);
+      beat = (before.length ? before[before.length - 1] : inSys[0]).beat;
+    }
+    const measureStart = Math.floor(beat / measureBeats + 1e-6) * measureBeats;
+    this._lastMeasure = -1; // let the ribbon flick re-align to the new measure
+    this.onSeek(measureStart);
   }
 
   setMuted(mutedSet) {
