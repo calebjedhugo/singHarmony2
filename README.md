@@ -28,13 +28,17 @@ npm run convert   # regenerate public/songs/ from the legacy app data
 - `src/score.js` — renders the 4-voice open score (one staff per part,
   bracketed, tenor displayed 8va) and layers on part labels, the playback
   cursor (via `data-beat`/`data-voice-id`), click-to-seek, and mute tinting.
-- `src/player.js` — beat-clock sequencer driving `Piano.startNote()`. Merges
-  ties, honors the song's rit/accel tempo map, and scales dynamics to the
-  number of unmuted voices (solo part loud, full choir soft).
+- `src/player.js` — adapter over resound-sound's `Sequencer`, which reads the
+  song's note arrays untouched. Holds only app policy: which piano and when to
+  warm it, the A-B loop buttons, and dynamics scaled to the number of unmuted
+  voices (solo part loud, full choir soft).
 - `src/main.js` — song list, controls, URL routing (`?song=slug`).
 
 ## Adding songs
 
 There is no editor — write the JSON by hand (or have Claude do it) following
 the schema above, drop it in `public/songs/`, and add an entry to
-`public/songs/index.json`.
+`public/songs/index.json`. Then run `npm test`: it renders every song through
+resound-notation and builds its playback timeline, so a malformed pickup,
+a note overrunning its measure, an unterminated tie, or an index entry that
+disagrees with the song file all fail there instead of in front of a singer.

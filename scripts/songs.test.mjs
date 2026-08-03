@@ -1,16 +1,19 @@
 /**
  * The song-data contract, checked against every file in public/songs/.
  *
- * These are the invariants `npm run convert` must preserve. They exist
- * because the songs are REGENERATED wholesale from the legacy data: a change
- * to meter inference, pickup handling or barline splitting rewrites 74 files
- * at once, and the only previous way to notice breakage was to diff a manual
- * snapshot or to spot it in the browser.
+ * The songs are the app's content, and per README's "Adding songs" they are
+ * WRITTEN BY HAND from here on (scripts/convert.mjs was the one-time import
+ * from the legacy app, which will never produce another song). Hand-authored
+ * four-voice JSON is exactly where these invariants get broken: a pickup the
+ * voices don't fill, a note that overruns its measure, a tie with no stop, a
+ * verse one syllable short.
  *
  * Everything asserted here is something a consumer depends on:
  * resound-notation THROWS on a pickup its voices do not fill exactly, renders
  * a wrong measure for any element that straddles a barline, and resound-sound
- * merges tie chains by pitch within a voice.
+ * merges tie chains by pitch within a voice. src/songs.render.test.js puts
+ * the same files through those consumers for real; this file states the rules
+ * in one place and points at the offending song when one breaks.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -53,10 +56,31 @@ const slotCount = (notes) => notes.filter(
 ).length;
 
 describe('song library', () => {
-  it('has the expected number of songs, all listed in the index', () => {
+  // No song count is pinned here on purpose: adding a hymn is the expected
+  // way this directory changes, and a test that fails on a legitimate
+  // addition would just train people to ignore it.
+
+  it('lists exactly the songs on disk in the index', () => {
+    // The index is maintained BY HAND alongside each new song file (README:
+    // "Adding songs"), so a song present but unlisted — or listed but
+    // missing — is the likeliest mistake, and the app shows neither.
     const index = JSON.parse(fs.readFileSync(path.join(SONGS_DIR, 'index.json'), 'utf8'));
-    expect(slugs.length).toBe(74);
     expect(index.songs.map((s) => s.slug).sort()).toEqual(slugs);
+  });
+
+  it('describes each song in the index the way the song file does', () => {
+    // The list page reads title/key/meter/tempo from the index, the song page
+    // from the file; a typo in one shows a hymn that changes key when opened.
+    const index = JSON.parse(fs.readFileSync(path.join(SONGS_DIR, 'index.json'), 'utf8'));
+    const mismatches = [];
+    for (const entry of index.songs) {
+      const song = load(entry.slug);
+      if (entry.title !== song.title) mismatches.push(`${entry.slug}: title`);
+      if (entry.key !== song.keySignature) mismatches.push(`${entry.slug}: key`);
+      if (entry.tempo !== song.tempo) mismatches.push(`${entry.slug}: tempo`);
+      if (String(entry.timeSignature) !== String(song.timeSignature)) mismatches.push(`${entry.slug}: timeSignature`);
+    }
+    expect(mismatches).toEqual([]);
   });
 });
 

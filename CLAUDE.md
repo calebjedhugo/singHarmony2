@@ -18,26 +18,33 @@ per-voice mute, eager piano warm-up at page load (~2ms play-tap latency).
 
 ```bash
 npm run dev                  # Vite dev server
-npm test                     # jest (jsdom), 734 tests — RUN AFTER npm run convert
+npm test                     # jest (jsdom), 735 tests
 npm run build                # build to dist/
-npm run convert              # regenerate public/songs/ from legacy data
 ./deploy.sh                  # build + rsync dist/ to the Pi
+npm run convert              # ONE-TIME legacy import — see below before running
 ```
 
-**IMPORTANT: `npm run convert` rewrites all 74 songs at once — always follow it
-with `npm test`.** `scripts/songs.test.mjs` asserts the data contract both
-libraries depend on (voice lengths agree, nothing straddles a barline, pickups
-are filled exactly and start on real music, tie chains are well-formed, lyric
-verses match the soprano slot count). It is the only automatic check that a
-converter change didn't quietly break a hymn. `src/songs.render.test.js` is
-its stronger half: it feeds all 74 songs to the REAL consumers (Score →
-NotationRenderer, and resound-sound's `buildTimeline`), so the libraries — not
-this repo's re-derived arithmetic — judge the data. Keep both: the renderer
-throws on a bad pickup, but resound-sound plays it silently, and only the
-timeline assertions catch audio that drifts from the page.
-`src/score.test.js` covers the measure grid against a real render;
-`src/player.test.js` covers the adapter's loop/mute/tempo policy. Playback and
-engraving behavior itself belongs to the libraries' own suites.
+**Run `npm test` after touching `public/songs/`, `lyrics/`, or either resound
+library.** Songs are hand-written from here on (README: "Adding songs"), and
+hand-authored four-voice JSON is where the schema gets broken — a pickup the
+voices don't fill, a note overrunning its measure, a verse a syllable short.
+`src/songs.render.test.js` puts every song through the REAL consumers (Score →
+NotationRenderer, and resound-sound's `buildTimeline`), so the libraries judge
+the data; it is also what tells you a library bump broke the catalog.
+`scripts/songs.test.mjs` states the same rules directly and names the offending
+song. Keep both: the renderer throws on a bad pickup, but resound-sound plays
+it silently, so only the timeline assertions catch audio drifting from the
+page. `src/score.test.js` covers the measure grid; `src/player.test.js` the
+adapter's loop/mute/tempo policy. Playback and engraving behavior itself
+belongs to the libraries' own suites.
+
+**`npm run convert` is finished work, not a build step.** It imported the 74
+hymns from the legacy app's parallel arrays; that app is done and will never
+produce another song. Keep it only as the migration record and as the way to
+RESHAPE all 74 at once if the schema changes (that is what regenerated them
+for pickup measures on 2026-08-03). Re-running it rewrites `index.json` from
+the legacy song list, so **any hand-added hymn would be dropped from the
+index** — check for songs outside the legacy 74 first.
 
 ## Architecture
 
