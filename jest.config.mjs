@@ -1,5 +1,6 @@
 export default {
   testEnvironment: 'jsdom',
+  setupFiles: ['<rootDir>/test/audioMocks.js'],
   transform: { '^.+\\.m?js$': 'babel-jest' },
   // Both resound packages ship ESM; babel-jest skips node_modules by default.
   transformIgnorePatterns: ['/node_modules/(?!(resound-notation|resound-sound)/)'],

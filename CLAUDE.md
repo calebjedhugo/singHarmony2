@@ -18,7 +18,7 @@ per-voice mute, eager piano warm-up at page load (~2ms play-tap latency).
 
 ```bash
 npm run dev                  # Vite dev server
-npm test                     # jest (jsdom), 579 tests — RUN AFTER npm run convert
+npm test                     # jest (jsdom), 586 tests — RUN AFTER npm run convert
 npm run build                # build to dist/
 npm run convert              # regenerate public/songs/ from legacy data
 ./deploy.sh                  # build + rsync dist/ to the Pi

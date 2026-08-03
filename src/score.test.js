@@ -9,6 +9,7 @@
  * When these drift from the library, seeks land between beats in every song
  * with a pickup — which is half the hymnal.
  */
+import { NotationRenderer } from 'resound-notation';
 import { Score } from './score.js';
 
 /** A quarter note on `pitch`, or a quarter rest when pitch is omitted. */
@@ -138,15 +139,33 @@ describe('Score rendering against the grid', () => {
     expect(seeks).toEqual([4]);
   });
 
-  it('passes a real pickup to the renderer, and omits the key when there is none', () => {
-    // resound-notation VALIDATES pickupBeats, so a song whose voices do not
-    // fill the pickup exactly throws here rather than rendering wrong.
+  it('hands the song pickup through to the renderer', () => {
+    const spy = jest.spyOn(NotationRenderer.prototype, 'render');
     const score = new Score(mount());
-    expect(() => score.render(pickupSong())).not.toThrow();
-    expect(() => score.render(plainSong())).not.toThrow();
+    score.render(pickupSong());
 
+    expect(spy.mock.calls[0][0].pickupBeats).toBe(1);
+    spy.mockRestore();
+  });
+
+  it('omits pickupBeats entirely for a song without one', () => {
+    // Passing `pickupBeats: undefined` would be indistinguishable here, but
+    // not in the library — it validates the key whenever it is present.
+    const spy = jest.spyOn(NotationRenderer.prototype, 'render');
+    const score = new Score(mount());
+    score.render(plainSong());
+
+    expect('pickupBeats' in spy.mock.calls[0][0]).toBe(false);
+    spy.mockRestore();
+  });
+
+  it('lets the library reject a pickup the voices do not fill', () => {
+    // resound-notation VALIDATES pickupBeats, so bad data fails loudly at
+    // render rather than engraving a wrong measure.
+    const score = new Score(mount());
     const broken = pickupSong();
     broken.voices[0].notes = [{ pitch: 'C5', length: '1/2' }, ...broken.voices[0].notes.slice(2)];
+
     expect(() => score.render(broken)).toThrow(/pickup/i);
   });
 });

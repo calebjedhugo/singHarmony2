@@ -3,12 +3,13 @@
 /**
  * Player is a thin adapter over resound-sound's Sequencer — the schema
  * interpretation lives in the library and is tested there. What is app policy,
- * and therefore tested here: where playback parks, how the two A-B loop
- * buttons repair an inverted range, and that the pieces main.js and score.js
- * read (muted set, bpm, secPerBeat) stay wired to the sequencer.
+ * and therefore tested here: where playback parks, when the piano gets built
+ * and warmed, how the two A-B loop buttons repair an inverted range, and that
+ * the pieces main.js and score.js read (muted set, bpm, secPerBeat) stay wired
+ * to the sequencer.
  *
- * Nothing here starts audio: play() would construct a Piano, which needs an
- * AudioContext jsdom does not have.
+ * Audio runs against the Web Audio mocks in test/audioMocks.js — the real
+ * Piano, through a stubbed AudioContext.
  */
 import { Player } from './player.js';
 
@@ -62,6 +63,97 @@ describe('Player state after load', () => {
     player.seek(3);
 
     expect(ticks).toEqual([3]);
+  });
+});
+
+describe('Player piano handling', () => {
+  afterEach(() => jest.useRealTimers());
+
+  // Some tests below hand the Player a recording instrument through
+  // `player.piano` — the same public seam main.js assigns its eagerly
+  // initialized Piano to. That is injection through the app's own API, not a
+  // mocked-out internal: the first test exercises the real Piano end to end
+  // against the mocked AudioContext.
+
+  it('builds a piano on the first play and warms the song it loaded', async () => {
+    // main.js normally hands over an eagerly-initialized piano; when that
+    // path is unavailable the Player must still come up inside the gesture.
+    const player = new Player();
+    player.load(song());
+    expect(player.piano).toBeNull();
+
+    await player.play();
+
+    expect(player.piano).not.toBeNull();
+    expect([...player.warmed].sort()).toEqual(['C3', 'C5']);
+    expect(player.playing).toBe(true);
+
+    player.pause();
+    expect(player.playing).toBe(false);
+  });
+
+  it('keeps the piano main.js gave it, warming only pitches it has not seen', async () => {
+    const player = new Player();
+    player.load(song());
+    const eager = { warm: jest.fn().mockResolvedValue(undefined), startNote: jest.fn(), stopAll: jest.fn() };
+    player.piano = eager;
+    player.warmed.add('C5'); // main.js marks the full chromatic range warmed
+
+    await player.play();
+    player.pause();
+
+    expect(eager.warm).toHaveBeenCalledTimes(1);
+    expect(eager.warm).toHaveBeenCalledWith(['C3']); // C5 was already warm
+    expect(player.piano).toBe(eager);
+  });
+
+  it('warms ahead only once a piano exists, so opening a song is cheap', () => {
+    const player = new Player();
+    player.load(song());
+
+    expect(() => player.warmAhead()).not.toThrow(); // no piano yet: no-op
+    expect(player.warmed.size).toBe(0);
+
+    const eager = { warm: jest.fn().mockResolvedValue(undefined), startNote: jest.fn(), stopAll: jest.fn() };
+    player.piano = eager;
+    player.warmAhead();
+
+    expect(eager.warm).toHaveBeenCalledWith(['C5', 'C3']);
+  });
+
+  it('sounds the loaded voices as the clock crosses their onsets', async () => {
+    jest.useFakeTimers();
+    const player = new Player();
+    player.load(song());
+    const piano = { warm: jest.fn().mockResolvedValue(undefined), startNote: jest.fn(), stopAll: jest.fn() };
+    player.piano = piano;
+
+    await player.play();
+    expect(piano.startNote).toHaveBeenCalledTimes(2); // beat 0: soprano + bass
+
+    jest.advanceTimersByTime(600); // past beat 1 at 120bpm
+    player.pause();
+
+    expect(piano.startNote.mock.calls.length).toBeGreaterThan(2);
+    // two voices singing → the two-part dynamic; 500ms is a quarter at 120bpm
+    expect(piano.startNote).toHaveBeenLastCalledWith(expect.any(String), 500, 0.8);
+    expect(piano.stopAll).toHaveBeenCalled();
+  });
+
+  it('drops the dynamic as voices are muted', async () => {
+    jest.useFakeTimers();
+    const player = new Player();
+    player.load(song());
+    const piano = { warm: jest.fn().mockResolvedValue(undefined), startNote: jest.fn(), stopAll: jest.fn() };
+    player.piano = piano;
+    player.toggleMute('bass');
+
+    await player.play();
+    player.pause();
+
+    // one voice left singing: the solo dynamic, and the muted voice is silent
+    expect(piano.startNote).toHaveBeenCalledTimes(1);
+    expect(piano.startNote).toHaveBeenCalledWith('C5', 500, 0.95);
   });
 });
 
