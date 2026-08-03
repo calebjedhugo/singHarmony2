@@ -15,9 +15,10 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 const PART_LABELS = { soprano: 'S', alto: 'A', tenor: 'T', bass: 'B' };
 
 export class Score {
-  constructor(container, { onSeek } = {}) {
+  constructor(container, { onSeek, onScrub } = {}) {
     this.container = container;
     this.onSeek = onSeek;
+    this.onScrub = onScrub;
     this.renderer = null;
     this.song = null;
     this.verseFilter = 'all'; // 'all' | 0-based verse index
@@ -27,6 +28,14 @@ export class Score {
     for (const evt of ['wheel', 'touchmove']) {
       wrap.addEventListener(evt, () => { this._userScrollUntil = performance.now() + 2500; }, { passive: true });
     }
+    // Drag-scrub (ribbon): when the USER scrolls the ribbon, snap the playback
+    // position to the measure nearest the left edge once the scroll settles.
+    wrap.addEventListener('scroll', () => {
+      if (this.mode !== 'ribbon' || this._tweening) return;
+      if (performance.now() >= this._userScrollUntil) return; // programmatic
+      clearTimeout(this._scrubTimer);
+      this._scrubTimer = setTimeout(() => this._scrubSeek(wrap), 250);
+    }, { passive: true });
     this.noteIndex = new Map(); // voiceId -> sorted [{el, beat, dur}]
     this.activeEls = [];
     this.lastBeat = -1;
@@ -267,12 +276,34 @@ export class Score {
     const delta = target - from;
     if (Math.abs(delta) < 1) return;
     const t0 = performance.now();
+    this._tweening = true;
     const step = () => {
       const t = Math.min(1, (performance.now() - t0) / ms);
       wrap.scrollLeft = from + delta * (1 - (1 - t) ** 3);
       if (t < 1) this._flickTimer = setTimeout(step, 16);
+      else this._tweening = false;
     };
     step();
+  }
+
+  /** Snap the playback position to the measure nearest the ribbon's left edge. */
+  _scrubSeek(wrap) {
+    if (!this.song || !this.onScrub) return;
+    const [num, den] = this.song.timeSignature;
+    const measureBeats = num * (4 / den);
+    const anchors = this._anchors;
+    if (!anchors || !anchors.length) return;
+    const lastBeat = anchors[anchors.length - 1].beat;
+    const edge = wrap.scrollLeft + 30;
+    let best = 0;
+    let bestDist = Infinity;
+    for (let m = 0; m * measureBeats <= lastBeat + 1e-6; m++) {
+      const d = Math.abs(this._xForBeat(m * measureBeats) - edge);
+      if (d < bestDist) { bestDist = d; best = m; }
+    }
+    this._lastMeasure = best;          // no immediate flick-back
+    this._userScrollUntil = 0;         // resume auto-follow from here
+    this.onScrub(best * measureBeats);
   }
 
   /** Tint the notes inside the A-B loop range (pass nulls to clear). */

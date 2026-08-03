@@ -34,7 +34,11 @@ if (ResoundSound.initInstruments) {
     })
     .catch(() => { /* fallback: player constructs lazily on first play */ });
 }
-const score = new Score($('#score'), { onSeek: (beat) => player.seek(beat) });
+const score = new Score($('#score'), {
+  onSeek: (beat) => player.seek(beat),
+  // drag-scrub in ribbon mode: playback start snaps to the nearest measure
+  onScrub: (beat) => player.seek(beat),
+});
 let songIndex = [];
 let current = null;
 
@@ -97,6 +101,10 @@ async function openSong(slug, push) {
   score.setCursor(player.beat, true);
   refreshLoopUI();
   buildVerseChips();
+  const menuTitle = document.querySelector('#menuPanel .menu-title');
+  menuTitle.textContent = song.title;
+  menuTitle.hidden = false;
+  closeMenu();
   if (push) history.pushState({ slug }, '', `?song=${slug}`);
   document.title = `${song.title} · How to Sing Harmony`;
   updateRotateHint();
@@ -115,7 +123,20 @@ function showList(push) {
 }
 
 backBtn.addEventListener('click', () => showList(true));
-$('#backBtn2').addEventListener('click', () => showList(true));
+$('#backBtn2').addEventListener('click', () => { closeMenu(); showList(true); });
+
+// hamburger menu (mobile chrome)
+const menuBtn = $('#menuBtn');
+function closeMenu() { document.body.classList.remove('menu-open'); }
+menuBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  document.body.classList.toggle('menu-open');
+});
+document.addEventListener('click', (e) => {
+  if (!document.body.classList.contains('menu-open')) return;
+  if (e.target.closest('#menuPanel') || e.target.closest('#menuBtn')) return;
+  closeMenu();
+});
 
 // Rotate-to-landscape hint on small portrait touch screens (the score wants width)
 const rotateHint = document.createElement('div');
@@ -283,7 +304,8 @@ const chipsWrap = $('#voiceChips');
 for (const v of VOICES) {
   const chip = document.createElement('button');
   chip.className = `chip chip-${v.id} chip-on`;
-  chip.innerHTML = `<span class="dot"></span>${v.label}`;
+  chip.dataset.initial = v.label[0];
+  chip.innerHTML = `<span class="dot"></span><span class="chip-label">${v.label}</span>`;
   chip.title = `Toggle ${v.label}`;
   chip.addEventListener('click', () => {
     const on = player.toggleMute(v.id);

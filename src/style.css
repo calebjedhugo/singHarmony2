@@ -88,7 +88,7 @@ body {
 #songTitle { font-family: Georgia, serif; font-size: 1.5rem; margin: 0; }
 #songMeta { color: var(--ink-soft); font-size: 0.85rem; margin-top: 2px; }
 
-#verseChips { display: flex; justify-content: center; gap: 5px; margin-top: 8px; flex-wrap: wrap; }
+#verseChips { display: flex; justify-content: center; gap: 5px; flex-wrap: wrap; align-items: center; }
 .verse-chip {
   min-width: 30px; padding: 4px 9px; border-radius: 999px; cursor: pointer;
   border: 1px solid var(--line); background: var(--card); color: var(--ink-soft);
@@ -102,6 +102,15 @@ body {
   gap: 14px; padding: 10px 16px 14px;
   border-bottom: 1px solid var(--line);
 }
+/* desktop: the menu panel is transparent — its groups flow in the controls row */
+#menuPanel { display: contents; }
+#menuPanel .menu-title, #menuPanel .menu-links { display: none; }
+#menuBtn { display: none; }
+#playBtn { order: 0; }
+#menuPanel .transport { order: 1; }
+#voiceChips { order: 2; }
+#menuPanel .tempo-wrap { order: 3; }
+#menuPanel #verseChips { order: 4; }
 .transport { display: flex; align-items: center; gap: 8px; }
 .transport-btn {
   width: 40px; height: 40px; border-radius: 50%;
@@ -214,37 +223,63 @@ body {
   padding: 8px 18px; font-size: 0.85rem; box-shadow: 0 2px 10px rgba(0,0,0,0.25);
 }
 
-#backBtn2 { display: none; border-color: var(--line); color: var(--ink-soft); padding: 3px 8px; font-size: 0.85rem; }
-
-/* ---------- compact layouts ---------- */
-/* Small screens: shrink chrome so the score gets the pixels. */
+/* ---------- mobile chrome: no toolbar at all ---------- */
+/* The score IS the app: SATB toggles float on the left, play floats bottom-
+   right, everything else lives in the hamburger. Drag the ribbon to scrub. */
 @media (max-width: 700px), (max-height: 500px) {
-  #appTitle { font-size: 0.95rem; }
-  #topbar { padding: 6px 12px; }
-  #songHeader { padding: 6px 12px 0; }
-  #songTitle { font-size: 1.05rem; }
-  #songMeta { font-size: 0.7rem; margin-top: 0; }
-  #verseChips { margin-top: 4px; gap: 4px; }
-  .verse-chip { padding: 2px 7px; min-width: 24px; font-size: 0.68rem; }
-  #controls { gap: 8px; padding: 6px 8px 8px; }
-  .play-btn { width: 40px; height: 40px; }
-  .play-btn svg { width: 20px; height: 20px; }
-  .transport-btn { width: 32px; height: 32px; }
-  .loop-btn { width: 24px; height: 24px; font-size: 0.65rem; border-radius: 6px; }
-  .chip { padding: 4px 9px; font-size: 0.72rem; gap: 5px; }
-  .chip .dot { width: 8px; height: 8px; }
-  .tempo-wrap { font-size: 0.7rem; gap: 5px; }
-  .tempo-wrap input[type="range"] { width: 70px; }
-  #score { padding: 12px 4px; }
-  #scoreWrap { padding: 8px 6px 40px; }
-}
+  #topbar, #songHeader { display: none; }
+  #scoreWrap { padding: 6px 4px 10px; }
+  #scoreWrap:not(.ribbon-view) { padding-top: 46px; } /* clear the hamburger in page mode */
+  #score { padding: 10px 6px; }
 
-/* Phone landscape: hide the site header entirely — the score is the app. */
-@media (max-height: 500px) and (orientation: landscape) {
-  #topbar { display: none; }
-  #songHeader { display: flex; align-items: baseline; justify-content: center; gap: 10px; }
-  #songTitle { font-size: 0.95rem; }
-  #backBtn2 { display: inline-grid; }
+  #controls { display: contents; }
+
+  #playBtn {
+    position: fixed; right: 14px; bottom: 14px; z-index: 30;
+    width: 52px; height: 52px;
+    box-shadow: 0 3px 14px rgba(43, 38, 32, 0.4);
+  }
+
+  #voiceChips {
+    position: fixed; left: 8px; top: 50%; transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 8px; z-index: 30;
+  }
+  .chip {
+    width: 40px; height: 40px; border-radius: 50%; padding: 0;
+    justify-content: center; font-size: 0.95rem; font-weight: 700;
+    box-shadow: 0 1px 6px rgba(43, 38, 32, 0.18);
+  }
+  .chip .dot, .chip .chip-label { display: none; }
+  .chip::after { content: attr(data-initial); }
+  .chip:not(.chip-on) { opacity: 0.45; }
+
+  #menuBtn {
+    display: grid; place-items: center;
+    position: fixed; top: 10px; right: 12px; z-index: 31;
+    width: 40px; height: 40px; border-radius: 10px;
+    background: var(--card); border: 1px solid var(--line); color: var(--ink-soft);
+    box-shadow: 0 1px 6px rgba(43, 38, 32, 0.18);
+  }
+
+  #menuPanel { display: none; }
+  body.menu-open #menuPanel {
+    display: flex; flex-direction: column; align-items: stretch; gap: 14px;
+    position: fixed; top: 58px; right: 12px; z-index: 40;
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 16px; box-shadow: 0 8px 28px rgba(43, 38, 32, 0.3);
+    max-width: min(320px, 86vw);
+  }
+  body.menu-open #menuPanel .menu-title {
+    display: block; font-family: Georgia, serif; font-weight: 700;
+    font-size: 1rem; text-align: center;
+  }
+  body.menu-open #menuPanel .menu-links {
+    display: flex; flex-direction: column; gap: 6px; align-items: stretch;
+  }
+  .menu-links .text-btn { text-align: center; text-decoration: none; padding: 7px; }
+  #menuPanel .transport { justify-content: center; }
+  #menuPanel .tempo-wrap { justify-content: center; }
+  .verse-chip { padding: 3px 8px; min-width: 26px; font-size: 0.72rem; }
 }
 
 /* rotate prompt (small portrait touch screens) */
