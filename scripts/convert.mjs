@@ -419,11 +419,16 @@ for (let s = 0; s < songSpans.length; s++) {
   const M = M0 * k;
   const vocabScaled = durationVocab(subUnitScaled);
 
-  // 3. Build the shared timeline. Notation beat 0 = start of the padded first
-  //    measure. padSubs of rest precede the pickup.
-  const padSubs = pickupSubs > 0 ? (M0 - pickupSubs) * k : 0;
-  const totalSubs = padSubs + Math.round(lastEnd * k);
-  const tailPad = (M - (totalSubs % M)) % M;
+  // 3. Build the shared timeline. Notation beat 0 = the first sounding beat.
+  //    A pickup is a real SHORT measure 0 (resound-notation's `pickupBeats`),
+  //    never padded out with leading rests: barlines sit at pk + n*M.
+  const pk = pickupSubs * k;
+  const totalSubs = Math.round(lastEnd * k);
+  //    Hymnal convention (checked against the engravings): pickup + final
+  //    measure = one full measure, so a pickup song's last measure is short
+  //    and carries no filler rests. Without a pickup, fill to the barline as
+  //    before.
+  const tailPad = pk ? 0 : (M - (totalSubs % M)) % M;
   const subQuarters = 4 / subUnitScaled; // notated quarter-beats per scaled sub
   const tempo = Math.round(legacyTempo * (4 / subUnit) / resolution);
 
@@ -434,7 +439,7 @@ for (let s = 0; s < songSpans.length; s++) {
     let cursor = 0;
     const pushRest = (from, to) => { if (to > from) stream.push({ startSub: from, durSubs: to - from, pitch: null }); };
     for (const e of events) {
-      const start = padSubs + Math.round((e.frame - f0) * k);
+      const start = Math.round((e.frame - f0) * k);
       pushRest(cursor, start);
       const dur = Math.round(e.durSubs * k);
       stream.push({ startSub: start, durSubs: dur, pitch: e.pitch });
@@ -449,8 +454,10 @@ for (let s = 0; s < songSpans.length; s++) {
       let rem = ev.durSubs;
       const pieces = [];
       while (rem > 0) {
-        const posInMeasure = start % M;
-        const inMeasure = Math.min(rem, M - posInMeasure);
+        // distance to the next barline on the pickup-shifted grid (pk = 0
+        // reduces to the plain M-multiple grid)
+        const toBarline = start < pk ? pk - start : M - ((start - pk) % M);
+        const inMeasure = Math.min(rem, toBarline);
         for (const d of decompose(inMeasure, vocabScaled)) pieces.push(d);
         start += inMeasure;
         rem -= inMeasure;
@@ -535,7 +542,7 @@ for (let s = 0; s < songSpans.length; s++) {
   for (let f = f0; f < lastEnd; f++) {
     const mult = ctx.tempoChanges[f]?.[s] ?? 1;
     if (mult !== lastMult) {
-      tempoMap.push({ beat: (padSubs + (f - f0) * k) * subQuarters, multiplier: mult });
+      tempoMap.push({ beat: (f - f0) * k * subQuarters, multiplier: mult });
       lastMult = mult;
     }
   }

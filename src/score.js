@@ -43,6 +43,36 @@ export class Score {
     container.addEventListener('click', (e) => this._handleClick(e));
   }
 
+  // ---------- measure grid ----------
+  // Mirrors resound-notation's lib/measureGrid.js: with a pickup of p beats,
+  // measure 0 is the SHORT anacrusis [0, p) and measure m >= 1 starts at
+  // p + (m-1)*L. Without a pickup it reduces to m*L. Everything that maps
+  // beats to measures — cursor follow, click-to-seek, drag-scrub, system
+  // start beats — goes through these two.
+
+  /** Beats in a full measure. */
+  get measureBeats() {
+    const [num, den] = this.song.timeSignature;
+    return num * (4 / den);
+  }
+
+  get pickupBeats() { return this.song.pickupBeats || 0; }
+
+  /** First beat of measure `m` (the pickup counts as measure 0). */
+  gridStart(m) {
+    const p = this.pickupBeats;
+    if (!p) return m * this.measureBeats;
+    return m === 0 ? 0 : p + (m - 1) * this.measureBeats;
+  }
+
+  /** Index of the measure containing `beat`. */
+  measureAt(beat) {
+    const p = this.pickupBeats;
+    if (!p) return Math.floor(beat / this.measureBeats + 1e-6);
+    if (beat < p - 1e-6) return 0;
+    return 1 + Math.floor((beat - p) / this.measureBeats + 1e-6);
+  }
+
   /** 'page' = vertical systems (hymnal page); 'ribbon' = one long horizontal system. */
   setMode(mode) {
     if (mode === this.mode) return;
@@ -63,6 +93,8 @@ export class Score {
     const data = {
       timeSignature: song.timeSignature,
       keySignature: song.keySignature,
+      // a pickup is a real short first measure, not rest padding
+      ...(song.pickupBeats ? { pickupBeats: song.pickupBeats } : {}),
       voices: song.voices.map((v) => ({
         id: v.id,
         staff: STAFF_MAP[v.id]?.staff,
@@ -149,12 +181,10 @@ export class Score {
     // data-beat is SYSTEM-RELATIVE (the renderer slices voices per system and
     // restarts its beat counter), so recover the absolute beat from the
     // group's data-start-measure.
-    const [num, den] = this.song.timeSignature;
-    const measureBeats = num * (4 / den);
     for (const group of svg.querySelectorAll('[data-voice-id]')) {
       const voiceId = group.getAttribute('data-voice-id');
       const startMeasure = Number(group.getAttribute('data-start-measure') || 0);
-      const systemStartBeat = startMeasure * measureBeats;
+      const systemStartBeat = this.gridStart(startMeasure);
       if (!this.noteIndex.has(voiceId)) this.noteIndex.set(voiceId, []);
       const list = this.noteIndex.get(voiceId);
       for (const el of group.querySelectorAll('[data-beat]')) {
@@ -171,8 +201,7 @@ export class Score {
     for (const group of svg.querySelectorAll('[data-voice-id="soprano"][data-system-index]')) {
       const sys = Number(group.getAttribute('data-system-index'));
       const startMeasure = Number(group.getAttribute('data-start-measure') || 0);
-      const [tn, td] = this.song.timeSignature;
-      const sysStartBeat = startMeasure * tn * (4 / td);
+      const sysStartBeat = this.gridStart(startMeasure);
       for (const el of group.querySelectorAll('[data-beat]')) {
         const r = el.getBoundingClientRect();
         this._anchors.push({
@@ -231,8 +260,6 @@ export class Score {
   /** Click anywhere in a measure → playback jumps to that measure's beat 1. */
   _handleClick(e) {
     if (!this.onSeek || !this.song || !this._anchors || !this._anchors.length) return;
-    const [num, den] = this.song.timeSignature;
-    const measureBeats = num * (4 / den);
     let beat;
     const el = e.target.closest('[data-beat]');
     if (el && el.dataset.absBeat !== undefined) {
@@ -253,9 +280,8 @@ export class Score {
       const before = inSys.filter((a) => a.x <= cx);
       beat = (before.length ? before[before.length - 1] : inSys[0]).beat;
     }
-    const measureStart = Math.floor(beat / measureBeats + 1e-6) * measureBeats;
     this._lastMeasure = -1; // let the ribbon flick re-align to the new measure
-    this.onSeek(measureStart);
+    this.onSeek(this.gridStart(this.measureAt(beat)));
   }
 
   setMuted(mutedSet) {
@@ -293,13 +319,11 @@ export class Score {
     if (performance.now() < this._userScrollUntil) return;
     // Measure-snap: hold still within a measure, then flick the newly-reached
     // measure flush to the left edge at each barline.
-    const [num, den] = this.song.timeSignature;
-    const measureBeats = num * (4 / den);
-    const measure = Math.floor(beat / measureBeats + 1e-6);
+    const measure = this.measureAt(beat);
     if (measure === this._lastMeasure) return;
     this._lastMeasure = measure;
     const wrap = this.container.closest('#scoreWrap') || this.container;
-    const target = Math.max(0, this._xForBeat(measure * measureBeats) - this._scrollEdge());
+    const target = Math.max(0, this._xForBeat(this.gridStart(measure)) - this._scrollEdge());
     this._flickTo(wrap, target);
   }
 
@@ -332,21 +356,19 @@ export class Score {
   /** Snap the playback position to the measure nearest the ribbon's left edge. */
   _scrubSeek(wrap) {
     if (!this.song || !this.onScrub) return;
-    const [num, den] = this.song.timeSignature;
-    const measureBeats = num * (4 / den);
     const anchors = this._anchors;
     if (!anchors || !anchors.length) return;
     const lastBeat = anchors[anchors.length - 1].beat;
     const edge = wrap.scrollLeft + this._scrollEdge();
     let best = 0;
     let bestDist = Infinity;
-    for (let m = 0; m * measureBeats <= lastBeat + 1e-6; m++) {
-      const d = Math.abs(this._xForBeat(m * measureBeats) - edge);
+    for (let m = 0; this.gridStart(m) <= lastBeat + 1e-6; m++) {
+      const d = Math.abs(this._xForBeat(this.gridStart(m)) - edge);
       if (d < bestDist) { bestDist = d; best = m; }
     }
     this._lastMeasure = best;          // no immediate flick-back
     this._userScrollUntil = 0;         // resume auto-follow from here
-    this.onScrub(best * measureBeats);
+    this.onScrub(this.gridStart(best));
   }
 
   /** Tint the notes inside the A-B loop range (pass nulls to clear). */

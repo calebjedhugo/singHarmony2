@@ -26,30 +26,38 @@ npm run convert              # regenerate public/songs/ from legacy data
 ## Architecture
 
 **GOVERNING PRINCIPLE (Caleb, 2026-07-21): the SAME untransformed note arrays
-feed both resound-notation's render() and resound-sound's play(). NO app-side
-translation layer may interpret the data.** src/player.js's current event
-extraction (tie merging, dotted math, own beat clock) is a violation being
-migrated into resound-sound as schema-native multi-voice playback — see the
-pending chip / SPEC work. Never add new data interpretation to the app; extend
-the libraries instead.
+feed both resound-notation's render() and resound-sound's Sequencer. NO
+app-side translation layer may interpret the data.** Honored since 2026-08-03:
+tie merging, dotted math and the multi-voice beat clock now live in
+resound-sound (`Sequencer` / `buildTimeline`, `src/SPEC-schema-playback.md`);
+src/player.js is a thin adapter holding only app policy (which piano, when to
+warm, the choir dynamic, A-B loop buttons). Never add data interpretation back
+to the app; extend the libraries instead.
 
 - **Song JSON** (`public/songs/*.json`): shared resound schema. Pitches are TRUE
   sounding pitch (`C4` scientific); the app transposes tenor +1 octave for
   display only (`displayOctave`). All timing in notated quarter-note beats —
   identical to resound-notation's `data-beat` values. `tempo` is notated-quarter
   BPM (compound meters already converted). `tempoMap` = rit/accel multipliers.
+  `pickupBeats` is a REAL short measure 0 (the notation lib validates that every
+  voice fills it exactly) — beat 0 is the first sounding beat, never a padded
+  barline. 37 of the 74 songs have one.
 - **Converter** (`scripts/convert.mjs`): reads the legacy parallel arrays from
   `calebhugo-com/sing-harmony-public/`. Legacy `subsPerMeasure`/`pickups` are
   UNRELIABLE — meter+pickup are inferred by scoring barline crossings, with
   `METER_OVERRIDES` pinning the few songs inference can't settle. Key signatures
   inferred from accidental usage + final bass note (relative minor allowed).
-- **Playback** (`src/player.js`): own beat-clock sequencer calling
-  `piano.startNote()` per onset (NOT resound-sound's `play()` — that can't do
-  live mute/tempo/seek). Ties merged at load. Velocity by unmuted-voice count:
-  1→0.95 … 4→0.5 (matches the Piano's velocity layers).
+- **Playback** (`src/player.js`): adapter over resound-sound's `Sequencer` —
+  hands it the song object untouched and exposes the app's controls. Velocity
+  policy (by unmuted-voice count: 1→0.95 … 4→0.5, matching the Piano's velocity
+  layers) is passed as a callback; `tailBeats: 2` keeps the cursor moving under
+  the final chord.
 - **Score** (`src/score.js`): NotationRenderer re-creates its SVG on responsive
   reflow, so ALL decoration (labels, cursor index, mute classes) re-applies via
   MutationObserver. Voice coloring is pure CSS on `[data-voice-id]`.
+  `gridStart(m)` / `measureAt(beat)` mirror resound-notation's `measureGrid`
+  (pickup = measure 0) and are THE source for every beat↔measure mapping:
+  ribbon follow, click-to-seek, drag-scrub, system start beats.
 
 ## Lyrics pipeline
 
@@ -77,8 +85,10 @@ the libraries instead.
 
 - resound-notation renders ONE VOICE PER STAFF (no shared-staff SATB). The
   4-staff open score is deliberate.
-- No pickup-measure support in the notation lib — the anacrusis is padded with
-  leading rests by the converter.
+- Pickup songs end on a SHORT final measure (pickup + final = one full measure,
+  checked against the engravings) and get NO filler rests. `jesus-paid-it-all`
+  is the one song whose legacy final note runs a beat long, so its last measure
+  renders full instead of short — data quirk, flagged not guessed.
 - SVG elements don't implement the `hidden` IDL property — use
   `toggleAttribute('hidden', …)`.
 - `window.__sh = {player, score}` is exposed for browser-console debugging.

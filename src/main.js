@@ -265,12 +265,10 @@ function refreshLoopUI() {
 }
 loopA.addEventListener('click', () => {
   player.setLoopStart();
-  if (player.loopEnd !== null && player.loopEnd <= player.loopStart) player.loopEnd = null;
   refreshLoopUI();
 });
 loopB.addEventListener('click', () => {
   player.setLoopEnd();
-  if (player.loopStart === null || player.loopEnd <= player.loopStart) player.loopStart = player.firstNoteBeat();
   player.seek(player.loopStart);
   refreshLoopUI();
 });
