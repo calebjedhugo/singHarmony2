@@ -24,13 +24,29 @@ const VOICES = [
 const player = new Player();
 
 // Eager piano init (resound-sound >= the initInstruments feature): create the
-// shared piano at page load — warming needs no user gesture; the library arms
-// a one-time gesture listener to resume the AudioContext for live output.
+// shared piano at page load and warm the FULL chromatic range C2-B5 while the
+// user is still on the song list — every hymn's pitches are covered before
+// any song is even opened. Warming uses OfflineAudioContext (no gesture
+// needed); the library arms a one-time gesture listener for live output.
 if (ResoundSound.initInstruments) {
-  ResoundSound.initInstruments({ piano: { id: 'sing-harmony', layers: VELOCITY_LAYERS } })
+  const ALL_PITCHES = [];
+  const FLAT_OF = { 'C#': 'Db', 'D#': 'Eb', 'F#': 'Gb', 'G#': 'Ab', 'A#': 'Bb' };
+  for (let oct = 2; oct <= 5; oct++) {
+    for (const pc of ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']) {
+      ALL_PITCHES.push(pc + oct);
+    }
+  }
+  ResoundSound.initInstruments({
+    piano: { id: 'sing-harmony', layers: VELOCITY_LAYERS, pitches: ALL_PITCHES },
+  })
     .then(({ piano }) => {
       player.piano = piano;
-      player.warmAhead(); // covers a song opened before init resolved
+      // mark everything warmed under both spellings (song data uses flats)
+      for (const p of ALL_PITCHES) {
+        player.warmed.add(p);
+        const m = /^([A-G]#)(\d)$/.exec(p);
+        if (m) player.warmed.add(FLAT_OF[m[1]] + m[2]);
+      }
     })
     .catch(() => { /* fallback: player constructs lazily on first play */ });
 }
@@ -42,7 +58,11 @@ const score = new Score($('#score'), {
 let songIndex = [];
 let current = null;
 
-player.onTick = (beat) => score.setCursor(beat);
+player.onTick = (beat) => {
+  // lead the highlight by 100ms so its transition is fully in at note onset
+  const lead = player.playing ? 0.1 / player.secPerBeat(beat) : 0;
+  score.setCursor(beat + lead);
+};
 player.onEnd = () => setPlayingUI(false);
 
 // ---------- song list ----------

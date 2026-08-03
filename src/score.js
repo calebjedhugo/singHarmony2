@@ -299,8 +299,16 @@ export class Score {
     if (measure === this._lastMeasure) return;
     this._lastMeasure = measure;
     const wrap = this.container.closest('#scoreWrap') || this.container;
-    const target = Math.max(0, this._xForBeat(measure * measureBeats) - 30);
+    const target = Math.max(0, this._xForBeat(measure * measureBeats) - this._scrollEdge());
     this._flickTo(wrap, target);
+  }
+
+  /** Where the playing measure's left edge should sit: clear of the floating
+   *  SATB buttons on mobile (prior music stays visible around them), modest
+   *  margin elsewhere. Mobile ribbon gets matching content padding-left so
+   *  measure 1 starts clear of the buttons too. */
+  _scrollEdge() {
+    return window.matchMedia('(max-width: 700px), (max-height: 500px)').matches ? 56 : 30;
   }
 
   /** Ease-out scroll tween. setTimeout-driven — native smooth scrollTo is
@@ -329,7 +337,7 @@ export class Score {
     const anchors = this._anchors;
     if (!anchors || !anchors.length) return;
     const lastBeat = anchors[anchors.length - 1].beat;
-    const edge = wrap.scrollLeft + 30;
+    const edge = wrap.scrollLeft + this._scrollEdge();
     let best = 0;
     let bestDist = Infinity;
     for (let m = 0; m * measureBeats <= lastBeat + 1e-6; m++) {

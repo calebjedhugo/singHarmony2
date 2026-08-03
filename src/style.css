@@ -202,7 +202,9 @@ body {
 #score.mute-tenor [data-voice-id="tenor"],
 #score.mute-bass [data-voice-id="bass"] { color: var(--muted-voice); }
 
-/* playback cursor */
+/* playback cursor — 100ms ease so the highlight breathes in (the app applies
+   it 100ms early so it's fully lit at note onset) */
+#score [data-beat] { transition: filter 100ms ease-out; }
 #score .sh-active {
   filter: drop-shadow(0 0 5px currentColor) drop-shadow(0 0 1px currentColor) brightness(1.25);
 }
@@ -233,6 +235,10 @@ body {
   #score { padding: 10px 6px; }
 
   #controls { display: contents; }
+
+  /* ribbon content clears the floating SATB stack (measure 1 included);
+     the flick alignment uses the same 56px edge */
+  #score.ribbon { padding-left: 56px; }
 
   #playBtn {
     position: fixed; right: 14px; bottom: 14px; z-index: 30;
