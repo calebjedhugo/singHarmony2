@@ -18,10 +18,21 @@ per-voice mute, eager piano warm-up at page load (~2ms play-tap latency).
 
 ```bash
 npm run dev                  # Vite dev server
+npm test                     # jest (jsdom), 579 tests — RUN AFTER npm run convert
 npm run build                # build to dist/
 npm run convert              # regenerate public/songs/ from legacy data
 ./deploy.sh                  # build + rsync dist/ to the Pi
 ```
+
+**IMPORTANT: `npm run convert` rewrites all 74 songs at once — always follow it
+with `npm test`.** `scripts/songs.test.mjs` asserts the data contract both
+libraries depend on (voice lengths agree, nothing straddles a barline, pickups
+are filled exactly and start on real music, tie chains are well-formed, lyric
+verses match the soprano slot count). It is the only automatic check that a
+converter change didn't quietly break a hymn. `src/score.test.js` covers the
+measure grid against a real render; `src/player.test.js` covers the adapter's
+loop/mute/tempo policy. Playback and engraving behavior itself belongs to the
+libraries' own suites.
 
 ## Architecture
 
