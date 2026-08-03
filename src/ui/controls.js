@@ -25,7 +25,6 @@ const setHidden = (el, hidden) => el.toggleAttribute('hidden', hidden);
 export function createControls({ player, score, root = document }) {
   const $ = (sel) => root.querySelector(sel);
   const playBtn = $('#playBtn');
-  const statusEl = $('#status');
   const tempoEl = $('#tempo');
   const tempoVal = $('#tempoVal');
   const loopA = $('#loopA');
@@ -33,34 +32,48 @@ export function createControls({ player, score, root = document }) {
   const loopClear = $('#loopClear');
   const verseChips = $('#verseChips');
   let song = null;
+  let preparing = false;
 
   // ---------- play / pause ----------
-  function setPlayingUI(playing) {
-    setHidden(playBtn.querySelector('.ic-play'), playing);
-    setHidden(playBtn.querySelector('.ic-pause'), !playing);
-    playBtn.classList.toggle('is-playing', playing);
+  /** @param {'idle'|'loading'|'playing'} state */
+  function setPlayState(state) {
+    setHidden(playBtn.querySelector('.ic-play'), state !== 'idle');
+    setHidden(playBtn.querySelector('.ic-pause'), state !== 'playing');
+    setHidden(playBtn.querySelector('.ic-loading'), state !== 'loading');
+    playBtn.classList.toggle('is-playing', state === 'playing');
+    playBtn.classList.toggle('is-loading', state === 'loading');
+    playBtn.setAttribute('aria-busy', String(state === 'loading'));
+    playBtn.title = state === 'loading' ? 'Preparing the piano…' : 'Play / pause (space)';
   }
 
+  /**
+   * The piano is warmed at page load, but a tap can beat it there — on a cold
+   * cache the pre-render takes about a second. The button spins for exactly
+   * that wait (nothing at all once the piano is ready) and ignores further
+   * taps, so an impatient second tap can't start a second play.
+   */
   async function togglePlay() {
-    if (!song) return;
+    if (!song || preparing) return;
     if (player.playing) {
       player.pause();
-      setPlayingUI(false);
+      setPlayState('idle');
       return;
     }
-    statusEl.textContent = 'Preparing piano…';
-    setHidden(statusEl, false);
+    preparing = true;
+    setPlayState('loading');
     try {
       await player.play();
+      setPlayState('playing');
+    } catch {
+      setPlayState('idle'); // no piano: leave the button usable, not spinning
     } finally {
-      setHidden(statusEl, true);
+      preparing = false;
     }
-    setPlayingUI(true);
   }
 
   playBtn.addEventListener('click', togglePlay);
   $('#rewindBtn').addEventListener('click', () => player.rewind());
-  player.onEnd = () => setPlayingUI(false);
+  player.onEnd = () => setPlayState('idle');
 
   // Space is a transport key, except while typing in the search box.
   const onKeydown = (e) => {
@@ -151,7 +164,7 @@ export function createControls({ player, score, root = document }) {
     showSong(next) {
       song = next;
       setTempo(next.tempo);
-      setPlayingUI(false);
+      setPlayState('idle');
       refreshLoopUI();
       buildVerseChips();
     },
@@ -159,7 +172,7 @@ export function createControls({ player, score, root = document }) {
     hideSong() {
       song = null;
       player.pause();
-      setPlayingUI(false);
+      setPlayState('idle');
     },
     /** Release the document-level key handler. The app lives as long as the
      *  page does and never calls this; tests that re-mount the markup do. */

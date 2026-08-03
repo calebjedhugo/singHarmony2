@@ -146,6 +146,14 @@ body {
 .play-btn svg { width: 26px; height: 26px; fill: currentColor; }
 .play-btn.is-playing { background: var(--ink); }
 
+/* the piano is still pre-rendering under this tap */
+.play-btn.is-loading { cursor: progress; }
+.play-btn .ic-loading { fill: none; animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .play-btn .ic-loading { animation-duration: 2.4s; }
+}
+
 #voiceChips { display: flex; gap: 8px; flex-wrap: wrap; }
 .chip {
   display: inline-flex; align-items: center; gap: 7px;
@@ -214,12 +222,6 @@ body {
 
 /* A-B loop: dim everything outside the looped passage */
 #score.has-loop [data-beat]:not(.in-loop) { opacity: 0.25; }
-
-#status {
-  position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
-  background: var(--ink); color: #f5efe4; border-radius: 999px;
-  padding: 8px 18px; font-size: 0.85rem; box-shadow: 0 2px 10px rgba(0,0,0,0.25);
-}
 
 /* ---------- mobile chrome: no toolbar at all ---------- */
 /* The score IS the app: SATB toggles float on the left, play floats bottom-

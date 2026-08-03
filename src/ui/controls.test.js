@@ -75,17 +75,55 @@ describe('play control', () => {
     expect(document.querySelector('#playBtn').classList.contains('is-playing')).toBe(true);
   });
 
-  it('hides the piano-preparing status once play returns', async () => {
+  it('spins on the button while the piano is still rendering, then plays', async () => {
+    // The piano is warmed at page load, but a tap can beat it there; play()
+    // waits for that init, and the button has to show the wait.
     open();
-    expect(isHidden('#status')).toBe(true);
+    let ready;
+    jest.spyOn(player, 'play').mockReturnValue(new Promise((resolve) => { ready = resolve; }));
 
     click('#playBtn');
-    expect(isHidden('#status')).toBe(false);
-    expect(document.querySelector('#status').textContent).toBe('Preparing piano…');
 
+    expect(isHidden('.ic-loading')).toBe(false);
+    expect(isHidden('.ic-play')).toBe(true);
+    expect(isHidden('.ic-pause')).toBe(true);
+    expect(document.querySelector('#playBtn').getAttribute('aria-busy')).toBe('true');
+
+    ready();
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(isHidden('#status')).toBe(true);
+
+    expect(isHidden('.ic-loading')).toBe(true);
+    expect(isHidden('.ic-pause')).toBe(false);
+    expect(document.querySelector('#playBtn').getAttribute('aria-busy')).toBe('false');
   });
+
+  it('ignores further taps while the piano is still rendering', async () => {
+    open();
+    let ready;
+    jest.spyOn(player, 'play').mockReturnValue(new Promise((resolve) => { ready = resolve; }));
+
+    click('#playBtn');
+    click('#playBtn'); // an impatient second tap
+    pressSpace();
+
+    expect(player.play).toHaveBeenCalledTimes(1);
+
+    ready();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(isHidden('.ic-pause')).toBe(false); // one play, not two
+  });
+
+  it('stops spinning if the piano never comes up', async () => {
+    open();
+    jest.spyOn(player, 'play').mockRejectedValue(new Error('no AudioContext'));
+
+    click('#playBtn');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(isHidden('.ic-loading')).toBe(true);
+    expect(isHidden('.ic-play')).toBe(false); // usable again, not stuck
+  });
+
 
   it('goes back to a play button when the song ends', () => {
     open();

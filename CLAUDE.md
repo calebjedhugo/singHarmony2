@@ -6,19 +6,20 @@ Live at https://sing-harmony-beta.calebhugo.com (Pi port 8101).
 **Both resound deps are local `file:` links** (../resound-notation,
 ../resound-sound) pending npm publishes of: two-voices-per-staff, multi-verse
 lyrics, lyric spacing/baseline/size, tie flattening (notation) and
-initInstruments eager init (sound). After publishing, switch package.json back
+initInstruments eager init + instrumentReady (sound). After publishing, switch package.json back
 to registry versions. Remember `npm run build` in each lib repo before an app
 build — Vite bundles from their dist/.
 
 Key UX: page/ribbon score modes (ribbon = one long system, measure-snap
 horizontal scroll; default on phone landscape), verse picker, A-B loop,
-per-voice mute, eager piano warm-up at page load (~2ms play-tap latency).
+per-voice mute, eager piano warm-up at page load (~2ms play-tap latency) with
+a spinner on the play button for a tap that beats it there.
 
 ## Commands
 
 ```bash
 npm run dev                  # Vite dev server
-npm test                     # jest (jsdom), 785 tests
+npm test                     # jest (jsdom), 788 tests
 npm run build                # build to dist/
 ./deploy.sh                  # build + rsync dist/ to the Pi
 npm run convert              # ONE-TIME legacy import — see below before running
@@ -81,6 +82,10 @@ to the app; extend the libraries instead.
   the final chord. `warmUp()` owns the eager path: it builds the shared piano
   at page load and pre-renders C2–B5 (both spellings — song data is in flats)
   while the user is still on the list, so the play tap has nothing to render.
+  A tap that beats it there waits on resound-sound's `instrumentReady()` and
+  takes THAT init's piano — never construct a second one in `ensurePiano()`,
+  or the gesture pays for the whole pre-render again with the warm buffers
+  sitting right there. The wait is what the play button's spinner shows.
 - **Score** (`src/score.js`): close score — S+A on the treble staff, T+B on the
   bass staff, braced, everyone at true pitch (no tenor 8va). NotationRenderer
   re-creates its SVG on responsive reflow, so ALL decoration (cursor index,

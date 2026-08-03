@@ -11,6 +11,7 @@
  * Audio runs against the Web Audio mocks in test/audioMocks.js — the real
  * Piano, through a stubbed AudioContext.
  */
+import { getInstrument } from 'resound-sound';
 import { Player } from './player.js';
 
 const q = (pitch) => ({ pitch, length: '1/4' });
@@ -133,6 +134,22 @@ describe('Player piano handling', () => {
     expect(player.warmed.has('Eb4')).toBe(true);
     expect(player.warmed.has('D#4')).toBe(true);
     expect(player.warmed.has('C2') && player.warmed.has('B5')).toBe(true);
+  });
+
+  it('takes over the warming piano when the tap beats the warm-up', async () => {
+    // A play tap while warmUp() is still rendering must wait for THAT init and
+    // use its piano. Building a second one here would throw away every warmed
+    // buffer and pay for the whole pre-render again, inside the gesture.
+    const player = new Player();
+    player.load(song());
+    const warming = player.warmUp();
+    expect(player.piano).toBeNull(); // the tap lands here
+
+    await player.play();
+    await warming;
+
+    expect(player.piano).toBe(getInstrument('sing-harmony'));
+    player.pause();
   });
 
   it('adopts a song that was opened while it was still warming', async () => {

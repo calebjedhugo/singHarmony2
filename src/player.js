@@ -9,7 +9,9 @@
  * What is left here is app policy: which piano to use and when to warm it,
  * the choir dynamic, and the A-B loop's two-button behavior.
  */
-import { Piano, Sequencer, initInstruments } from 'resound-sound';
+import {
+  Piano, Sequencer, initInstruments, instrumentReady,
+} from 'resound-sound';
 
 // Dynamic scales with how many voices sing: solo part loud, full choir soft.
 const VELOCITY_BY_ACTIVE = [0.95, 0.8, 0.65, 0.5];
@@ -92,9 +94,13 @@ export class Player {
 
   async ensurePiano() {
     if (!this.piano) {
-      // fallback path (warmUp unavailable/failed): construct inside the user
-      // gesture so the AudioContext starts running
-      this.piano = new Piano(PIANO_ID, { layers: VELOCITY_LAYERS });
+      // The tap can land while warmUp() is still rendering. Wait for that
+      // init and take ITS piano — building a second one here would throw away
+      // the warm buffers and pay for the whole pre-render again.
+      this.piano = await instrumentReady(PIANO_ID)
+        // nothing was ever initialized (warmUp unavailable): construct inside
+        // the gesture so the AudioContext starts running
+        || new Piano(PIANO_ID, { layers: VELOCITY_LAYERS });
     }
     this.seq.instrument = this.piano;
     const need = this.seq.pitches().filter((p) => !this.warmed.has(p));
