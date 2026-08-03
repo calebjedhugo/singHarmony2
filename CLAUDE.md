@@ -18,7 +18,7 @@ per-voice mute, eager piano warm-up at page load (~2ms play-tap latency).
 
 ```bash
 npm run dev                  # Vite dev server
-npm test                     # jest (jsdom), 735 tests
+npm test                     # jest (jsdom), 785 tests
 npm run build                # build to dist/
 ./deploy.sh                  # build + rsync dist/ to the Pi
 npm run convert              # ONE-TIME legacy import — see below before running
@@ -35,8 +35,11 @@ the data; it is also what tells you a library bump broke the catalog.
 song. Keep both: the renderer throws on a bad pickup, but resound-sound plays
 it silently, so only the timeline assertions catch audio drifting from the
 page. `src/score.test.js` covers the measure grid; `src/player.test.js` the
-adapter's loop/mute/tempo policy. Playback and engraving behavior itself
-belongs to the libraries' own suites.
+adapter's loop/mute/warm-up policy; `src/ui/*.test.js` the controls, driven
+through the real buttons in `index.html` (the tests mount that file's body —
+see `test/appMarkup.js` — so renaming an id fails a test instead of silently
+unwiring a control). Playback and engraving behavior itself belongs to the
+libraries' own suites.
 
 **`npm run convert` is finished work, not a build step.** It imported the 74
 hymns from the legacy app's parallel arrays; that app is done and will never
@@ -58,8 +61,9 @@ warm, the choir dynamic, A-B loop buttons). Never add data interpretation back
 to the app; extend the libraries instead.
 
 - **Song JSON** (`public/songs/*.json`): shared resound schema. Pitches are TRUE
-  sounding pitch (`C4` scientific); the app transposes tenor +1 octave for
-  display only (`displayOctave`). All timing in notated quarter-note beats —
+  sounding pitch (`C4` scientific). (Each voice also carries a `clef` and a
+  `displayOctave` from the converter; the close score assigns both itself, so
+  they are inert legacy fields.) All timing in notated quarter-note beats —
   identical to resound-notation's `data-beat` values. `tempo` is notated-quarter
   BPM (compound meters already converted). `tempoMap` = rit/accel multipliers.
   `pickupBeats` is a REAL short measure 0 (the notation lib validates that every
@@ -74,13 +78,25 @@ to the app; extend the libraries instead.
   hands it the song object untouched and exposes the app's controls. Velocity
   policy (by unmuted-voice count: 1→0.95 … 4→0.5, matching the Piano's velocity
   layers) is passed as a callback; `tailBeats: 2` keeps the cursor moving under
-  the final chord.
-- **Score** (`src/score.js`): NotationRenderer re-creates its SVG on responsive
-  reflow, so ALL decoration (labels, cursor index, mute classes) re-applies via
-  MutationObserver. Voice coloring is pure CSS on `[data-voice-id]`.
-  `gridStart(m)` / `measureAt(beat)` mirror resound-notation's `measureGrid`
-  (pickup = measure 0) and are THE source for every beat↔measure mapping:
-  ribbon follow, click-to-seek, drag-scrub, system start beats.
+  the final chord. `warmUp()` owns the eager path: it builds the shared piano
+  at page load and pre-renders C2–B5 (both spellings — song data is in flats)
+  while the user is still on the list, so the play tap has nothing to render.
+- **Score** (`src/score.js`): close score — S+A on the treble staff, T+B on the
+  bass staff, braced, everyone at true pitch (no tenor 8va). NotationRenderer
+  re-creates its SVG on responsive reflow, so ALL decoration (cursor index,
+  anchors, loop tint) re-applies via MutationObserver. Voice coloring is pure
+  CSS on `[data-voice-id]`. `gridStart(m)` / `measureAt(beat)` mirror
+  resound-notation's `measureGrid` (pickup = measure 0) and are THE source for
+  every beat↔measure mapping: ribbon follow, click-to-seek, drag-scrub, system
+  start beats.
+- **UI** (`src/main.js` + `src/ui/`): `main.js` is the shell — it owns the two
+  views, `?song=slug` routing, and nothing else. The controls live in three
+  factories that each take the player and/or score and wire one region of
+  `index.html`: `ui/songList.js` (list + search), `ui/controls.js` (transport,
+  tempo, A-B loop, verse picker, SATB chips), `ui/layout.js` (page/ribbon mode,
+  orientation, hamburger, rotate hint). `catalog.js` is the only place that
+  fetches. Keep app policy in these modules and data interpretation out of all
+  of them.
 
 ## Lyrics pipeline
 
@@ -106,8 +122,10 @@ to the app; extend the libraries instead.
 
 ## Gotchas
 
-- resound-notation renders ONE VOICE PER STAFF (no shared-staff SATB). The
-  4-staff open score is deliberate.
+- The score is the hymnal's CLOSE score (two voices per staff), which needs
+  resound-notation's two-voices-per-staff support — one of the local-only
+  features listed at the top. Reverting to a published version without it
+  breaks the layout, not just the build.
 - Pickup songs end on a SHORT final measure (pickup + final = one full measure,
   checked against the engravings) and get NO filler rests. `jesus-paid-it-all`
   is the one song whose legacy final note runs a beat long, so its last measure
