@@ -19,7 +19,7 @@ a spinner on the play button for a tap that beats it there.
 
 ```bash
 npm run dev                  # Vite dev server
-npm test                     # jest (jsdom), 788 tests
+npm test                     # jest (jsdom), 806 tests
 npm run build                # build to dist/
 ./deploy.sh                  # build + rsync dist/ to the Pi
 npm run convert              # ONE-TIME legacy import — see below before running
@@ -35,12 +35,25 @@ the data; it is also what tells you a library bump broke the catalog.
 `scripts/songs.test.mjs` states the same rules directly and names the offending
 song. Keep both: the renderer throws on a bad pickup, but resound-sound plays
 it silently, so only the timeline assertions catch audio drifting from the
-page. `src/score.test.js` covers the measure grid; `src/player.test.js` the
-adapter's loop/mute/warm-up policy; `src/ui/*.test.js` the controls, driven
-through the real buttons in `index.html` (the tests mount that file's body —
-see `test/appMarkup.js` — so renaming an id fails a test instead of silently
-unwiring a control). Playback and engraving behavior itself belongs to the
-libraries' own suites.
+page. `src/score.test.js` covers the measure grid and the per-hymn verse
+filter; `src/player.test.js` the adapter's loop/mute/warm-up policy;
+`src/catalog.test.js` the two fetches' error behavior; `src/ui/*.test.js` the
+controls and `src/main.test.js` the shell around them (routing, the two ways
+back, the cursor lead, the boot warm-up) — all driven through the real buttons
+in `index.html`, because the tests mount that file's body (see
+`test/appMarkup.js`), so renaming an id fails a test instead of silently
+unwiring a control. `main.test.js` boots the real module, so it is also what
+catches a broken `?song=` route. Playback and engraving behavior itself
+belongs to the libraries' own suites. Song data, `Score` and `Player` are the
+real classes everywhere. What is faked is the environment jest cannot provide —
+Web Audio (`test/audioMocks.js`), `scrollIntoView` (`test/domShims.js`), the CSS
+import (`test/styleStub.js`) and `fetch` (per test) — plus what a test has to
+hold still to observe: `layout.test.js` drives a `fakeScore()` because it tests
+the mode DECISION, `controls.test.js` stubs `player.play()` to hold the promise
+open and watch the button spin, and `player.test.js` hands the Player a
+recording piano to assert on velocities. NOT covered anywhere: ribbon follow
+and drag-scrub, which are layout geometry over bounding boxes that jsdom
+reports as all-zero. They need a real browser.
 
 **`npm run convert` is finished work, not a build step.** It imported the 74
 hymns from the legacy app's parallel arrays; that app is done and will never
@@ -59,12 +72,17 @@ tie merging, dotted math and the multi-voice beat clock now live in
 resound-sound (`Sequencer` / `buildTimeline`, `src/SPEC-schema-playback.md`);
 src/player.js is a thin adapter holding only app policy (which piano, when to
 warm, the choir dynamic, A-B loop buttons). Never add data interpretation back
-to the app; extend the libraries instead.
+to the app; extend the libraries instead. The one array the app ever rewrites
+is `score.js`'s `filterVerse()`, which is not an exception: it hides lyric
+strings for the verse picker and touches no pitch, length, tie or beat, so both
+consumers still read the same music. Anything that changes WHAT SOUNDS belongs
+in the libraries.
 
 - **Song JSON** (`public/songs/*.json`): shared resound schema. Pitches are TRUE
   sounding pitch (`C4` scientific). (Each voice also carries a `clef` and a
-  `displayOctave` from the converter; the close score assigns both itself, so
-  they are inert legacy fields.) All timing in notated quarter-note beats —
+  `displayOctave` from the converter. Both are genuinely inert: `score.js`
+  assigns staff and clef from its own STAFF_MAP and never falls back to the
+  file's.) All timing in notated quarter-note beats —
   identical to resound-notation's `data-beat` values. `tempo` is notated-quarter
   BPM (compound meters already converted). `tempoMap` = rit/accel multipliers.
   `pickupBeats` is a REAL short measure 0 (the notation lib validates that every
@@ -93,9 +111,17 @@ to the app; extend the libraries instead.
   CSS on `[data-voice-id]`. `gridStart(m)` / `measureAt(beat)` mirror
   resound-notation's `measureGrid` (pickup = measure 0) and are THE source for
   every beat↔measure mapping: ribbon follow, click-to-seek, drag-scrub, system
-  start beats.
+  start beats. `render()` owns per-hymn state: a NEW song object resets the
+  verse filter, the cursor beat and the last-scrolled system, while re-rendering
+  the SAME one (verse pick, mode flip, resize) keeps all three. No caller has to
+  remember to clear them — and none should, since a re-render must not throw
+  away the reader's verse pick or jump the page mid-playback.
 - **UI** (`src/main.js` + `src/ui/`): `main.js` is the shell — it owns the two
-  views, `?song=slug` routing, and nothing else. The controls live in three
+  views, `?song=slug` routing, and the boot sequence (warm the piano, fetch the
+  catalog, then route). The policy it holds is small and all of it is about
+  those two jobs: the 100ms cursor lead (the highlight has a 100ms CSS
+  transition), the per-song `warmAhead()`, and keeping a dead `?song=` in the
+  address bar so a reload retries it. It owns no controls. Those live in three
   factories that each take the player and/or score and wire one region of
   `index.html`: `ui/songList.js` (list + search), `ui/controls.js` (transport,
   tempo, A-B loop, verse picker, SATB chips), `ui/layout.js` (page/ribbon mode,
