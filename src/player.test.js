@@ -122,6 +122,22 @@ describe('Player piano handling', () => {
     expect(eager.warm).toHaveBeenCalledWith(['C5', 'C3']);
   });
 
+  it('swallows a failed warm-ahead instead of rejecting into the page', async () => {
+    // Nothing awaits warmAhead() — main.js fires it on every song open. A
+    // rejection escaping it is an unhandled one, and it costs nothing anyway:
+    // play() warms again inside the gesture and reports failure there.
+    const player = new Player();
+    player.load(song());
+    player.piano = {
+      warm: jest.fn().mockRejectedValue(new Error('OfflineAudioContext died')),
+      startNote: jest.fn(),
+      stopAll: jest.fn(),
+    };
+
+    await expect(player.warmAhead()).resolves.toBeUndefined();
+    expect(player.piano.warm).toHaveBeenCalled();
+  });
+
   it('warms the whole catalog range up front, in flats as well as sharps', async () => {
     // The page-load warm-up covers C2-B5 so no hymn has anything left to
     // render at the play tap. Song data spells accidentals as flats, so a
@@ -284,7 +300,10 @@ describe('Player A-B loop', () => {
     expect(player.looping).toBe(false);
   });
 
-  it('refuses a degenerate loop at the very start', () => {
+  it('refuses a degenerate loop at the very start, leaving NEITHER end set', () => {
+    // Repairing A to the top of the hymn and then rejecting the range used to
+    // leave A behind: the A button lit for a loop that does not exist, and the
+    // ✕ offered to clear it.
     const player = new Player();
     player.load(song());
 
@@ -293,6 +312,7 @@ describe('Player A-B loop', () => {
 
     expect(player.looping).toBe(false);
     expect(player.loopEnd).toBeNull();
+    expect(player.loopStart).toBeNull();
   });
 
   it('clears on demand and on the next song', () => {

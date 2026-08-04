@@ -38,7 +38,11 @@ player.onTick = (beat) => {
 // ---------- views ----------
 async function openSong(slug, push) {
   const song = await fetchSong(slug);
-  if (!song) { // a stale bookmark or a hymn that was renamed
+  if (!song) {
+    // A renamed hymn, or a dead connection — fetchSong() cannot tell them
+    // apart. Show the list rather than a blank song view, but leave ?song= in
+    // the address bar: it costs nothing, and it makes a reload retry the hymn
+    // once the network (or the file) comes back.
     showList(push);
     return;
   }
@@ -46,7 +50,6 @@ async function openSong(slug, push) {
   player.warmAhead(); // pre-render this song's pitches before the play tap
   $('#songTitle').textContent = song.title;
   $('#songMeta').textContent = `${song.keySignature} · ${song.timeSignature[0]}/${song.timeSignature[1]}`;
-  score.verseFilter = 'all';
   layout.prepareMode(); // before render: setMode() would re-render the old song
   score.render(song);
   score.setMuted(player.muted);

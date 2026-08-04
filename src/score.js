@@ -13,16 +13,16 @@
  */
 import { NotationRenderer } from 'resound-notation';
 
-const VOICE_IDS = ['soprano', 'alto', 'tenor', 'bass'];
-
 // Close score: S+A share the treble staff, T+B the bass staff — everyone at
-// true pitch (no tenor 8va; it reads from the bass clef as in hymnals).
+// true pitch (no tenor 8va; it reads from the bass clef as in hymnals). This is
+// also the app's list of voices: songs carry exactly these four.
 const STAFF_MAP = {
   soprano: { staff: 'upper', clef: 'treble' },
   alto: { staff: 'upper', clef: 'treble' },
   tenor: { staff: 'lower', clef: 'bass' },
   bass: { staff: 'lower', clef: 'bass' },
 };
+const VOICE_IDS = Object.keys(STAFF_MAP);
 
 /** Float slop for beat comparisons (beats are small, exact rationals). */
 const BEAT_EPS = 1e-6;
@@ -41,6 +41,14 @@ const CLICK_SYSTEM_REACH = 400;
  *  starts clear of the buttons too. */
 const EDGE_PX = { mobile: 56, desktop: 30 };
 const MOBILE_QUERY = '(max-width: 700px), (max-height: 500px)';
+
+/** Ribbon fit (see render()): engrave once at a width no system can fill, so
+ *  the music lays out as one line; then re-engrave to its measured extent plus
+ *  a right margin. Short hymns — and any SVG that won't report a bounding box
+ *  — fall back to the minimum width. */
+const RIBBON_PROBE_WIDTH = 200000;
+const RIBBON_RIGHT_MARGIN = 80;
+const RIBBON_MIN_WIDTH = 1000;
 
 /** Index of the last entry at or before `beat` (-1 if none). List is sorted. */
 function lastAtOrBefore(list, beat) {
@@ -146,6 +154,14 @@ export class Score {
   }
 
   render(song) {
+    // Verse pick, cursor and scroll position all belong to ONE hymn. Opening a
+    // different one starts them over; re-rendering the hymn already on screen
+    // (verse pick, mode flip, resize) must keep every one of them.
+    if (song !== this.song) {
+      this.verseFilter = 'all';
+      this.lastBeat = -1; // don't light the old hymn's beat on the new staves
+      this._lastSystemKey = null; // ...or leave the page scrolled where it was
+    }
     this.song = song;
     const data = this._renderData(song);
     this._observer.disconnect();
@@ -155,8 +171,8 @@ export class Score {
     if (ribbon) {
       // One long system: render at an effectively-infinite width, measure the
       // natural content extent, then re-render tight so the viewBox hugs it.
-      this._engrave(data, 200000);
-      this._engrave(data, this._contentRightEdge() + 80);
+      this._engrave(data, RIBBON_PROBE_WIDTH);
+      this._engrave(data, this._contentRightEdge() + RIBBON_RIGHT_MARGIN);
     } else {
       this._engrave(data);
     }
@@ -175,10 +191,11 @@ export class Score {
       keySignature: song.keySignature,
       // a pickup is a real short first measure, not rest padding
       ...(song.pickupBeats ? { pickupBeats: song.pickupBeats } : {}),
+      // The close score assigns staff and clef itself; the song file's own
+      // `clef`/`displayOctave` are inert converter leftovers and stay unread.
       voices: song.voices.map((v) => ({
         id: v.id,
-        staff: STAFF_MAP[v.id]?.staff,
-        clef: STAFF_MAP[v.id]?.clef ?? v.clef,
+        ...STAFF_MAP[v.id],
         // verse filtering applies only to the soprano's verse stack
         notes: showAllVerses || v.id !== 'soprano' ? v.notes : filterVerse(v.notes, this.verseFilter),
       })),
@@ -186,7 +203,12 @@ export class Score {
     };
   }
 
-  /** Replace the SVG with a fresh render (the renderer has no resize path). */
+  /**
+   * Replace the SVG with a fresh render. Given no explicit width the renderer
+   * attaches its own ResizeObserver and re-renders responsively (which is what
+   * the MutationObserver above is for); the ribbon passes a width and so opts
+   * out, which is why layout.js re-renders it by hand on a viewport change.
+   */
   _engrave(data, width) {
     if (this.renderer) this.renderer.clear();
     this.renderer = new NotationRenderer({
@@ -199,7 +221,7 @@ export class Score {
   /** Rightmost extent of staff furniture in the current SVG (internal units). */
   _contentRightEdge() {
     const svg = this.container.querySelector('svg');
-    let right = 1000;
+    let right = RIBBON_MIN_WIDTH;
     if (!svg) return right;
     for (const g of svg.querySelectorAll('.staff[data-staff-id], [data-voice-id]')) {
       try {
@@ -255,11 +277,12 @@ export class Score {
     const scoreRect = this.container.getBoundingClientRect();
     for (const group of svg.querySelectorAll('[data-voice-id="soprano"][data-system-index]')) {
       const sys = Number(group.getAttribute('data-system-index'));
-      const sysStartBeat = this.gridStart(Number(group.getAttribute('data-start-measure') || 0));
       for (const el of group.querySelectorAll('[data-beat]')) {
         const r = el.getBoundingClientRect();
         this._anchors.push({
-          beat: sysStartBeat + Number(el.getAttribute('data-beat')),
+          // absBeat was stamped by the indexing pass above; recovering the
+          // absolute beat a second time here is how the two drift apart.
+          beat: Number(el.dataset.absBeat),
           x: r.left + r.width / 2 - scoreRect.left,
           y: r.top + r.height / 2 - scoreRect.top,
           sys,
@@ -380,6 +403,10 @@ export class Score {
    *  unreliable across engines, and rAF stalls in unfocused tabs. */
   _flickTo(target, ms = FLICK_MS) {
     if (this._flickTimer) clearTimeout(this._flickTimer);
+    // Whatever was mid-flight is cancelled above, so the flag has to come down
+    // here and not in step(): the short-circuit below returns without ever
+    // scheduling a step, and a stuck `_tweening` mutes drag-scrub for good.
+    this._tweening = false;
     const from = this.wrap.scrollLeft;
     const delta = target - from;
     if (Math.abs(delta) < 1) return;

@@ -8,6 +8,11 @@
  * system-relative), click-to-seek quantizing, ribbon follow, and drag-scrub.
  * When these drift from the library, seeks land between beats in every song
  * with a pickup — which is half the hymnal.
+ *
+ * The grid and the page-mode paths are covered here. Ribbon follow and
+ * drag-scrub are NOT: they are pure layout geometry over element bounding
+ * boxes, and jsdom reports every box as zero, so a test could only assert
+ * against a faked layout. They need a real browser.
  */
 import { NotationRenderer } from 'resound-notation';
 import { Score } from './score.js';
@@ -157,6 +162,42 @@ describe('Score rendering against the grid', () => {
 
     expect('pickupBeats' in spy.mock.calls[0][0]).toBe(false);
     spy.mockRestore();
+  });
+
+  it('opens a different hymn on all verses, but keeps the pick on a re-render', () => {
+    // The verse picker is per hymn: carrying verse 3 into the next song shows
+    // a page of empty staves. Mode flips and viewport re-fits re-render the
+    // SAME song object, and those must not throw the reader's choice away.
+    const score = new Score(mount());
+    score.render(pickupSong());
+    score.setVerse(1);
+
+    score.render(score.song); // resize / mode flip
+    expect(score.verseFilter).toBe(1);
+
+    score.render(pickupSong()); // the next hymn off the list
+    expect(score.verseFilter).toBe('all');
+  });
+
+  it('leaves the previous hymn\'s cursor and scroll position behind', () => {
+    // _autoScroll only moves the page when the cursor enters a system it has
+    // not scrolled to yet. Both hymns start on system 0, so a system key that
+    // outlives the song opens the new hymn still scrolled to wherever the
+    // reader left the old one.
+    const scrolled = jest.spyOn(Element.prototype, 'scrollIntoView');
+    const score = new Score(mount());
+
+    score.render(pickupSong());
+    score.setCursor(0, true);
+    expect(scrolled).toHaveBeenCalledTimes(1);
+
+    score.render(pickupSong()); // the next hymn off the list
+    expect(score.lastBeat).toBe(-1); // its staves open with no cursor on them
+
+    score.setCursor(0, true); // ...until playback parks on its own first beat
+    expect(scrolled).toHaveBeenCalledTimes(2);
+
+    scrolled.mockRestore();
   });
 
   it('lets the library reject a pickup the voices do not fill', () => {

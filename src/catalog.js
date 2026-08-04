@@ -10,15 +10,20 @@ export async function fetchIndex() {
   return (await res.json()).songs;
 }
 
-/** One hymn, or null when there is no such slug (a stale bookmark or link). */
+/**
+ * One hymn, or null when it can't be read — a stale bookmark, a renamed slug,
+ * or a dead connection. All three land the same way in the app (back to the
+ * list), and only null does: a rejection here escapes an un-awaited openSong()
+ * and leaves the reader on a view that no longer matches the URL.
+ */
 export async function fetchSong(slug) {
-  const res = await fetch(`/songs/${slug}.json`);
-  if (!res.ok) return null;
   try {
-    return await res.json();
-  } catch {
+    const res = await fetch(`/songs/${slug}.json`);
+    if (!res.ok) return null;
     // Vite's dev server answers an unknown path with index.html and a 200, so
     // "didn't parse" means the same thing a 404 does: there is no such hymn.
+    return await res.json();
+  } catch {
     return null;
   }
 }

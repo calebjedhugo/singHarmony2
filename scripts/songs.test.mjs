@@ -68,6 +68,18 @@ describe('song library', () => {
     expect(index.songs.map((s) => s.slug).sort()).toEqual(slugs);
   });
 
+  it('advertises the number of hymns it actually ships', () => {
+    // index.html's footer is hand-written copy. No count is pinned to a literal
+    // anywhere in this file on purpose, but the page and the catalog must agree
+    // — otherwise the 75th hymn arrives and the site still promises 74.
+    const index = JSON.parse(fs.readFileSync(path.join(SONGS_DIR, 'index.json'), 'utf8'));
+    const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const claimed = /(\d+)\s+hymns/.exec(html);
+
+    expect(claimed).not.toBeNull();
+    expect(Number(claimed[1])).toBe(index.songs.length);
+  });
+
   it('describes each song in the index the way the song file does', () => {
     // The list page reads title/key/meter/tempo from the index, the song page
     // from the file; a typo in one shows a hymn that changes key when opened.

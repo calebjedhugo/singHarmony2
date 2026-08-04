@@ -231,6 +231,28 @@ describe('A-B loop control', () => {
     expect(player.beat).toBe(2);
   });
 
+  it('leaves both buttons dark, and playback put, when B lands at the top', () => {
+    // Tapping B at the very top of the hymn cannot make a loop. The A button
+    // must not light for one the singer never set, the ✕ must stay hidden, and
+    // the cursor must not be flung at a loop start that does not exist — this
+    // hymn opens on a rest, so beat 0 is not even where the music starts.
+    const withLeadIn = song();
+    for (const voice of withLeadIn.voices) voice.notes[0] = { length: '1/4' };
+    open(withLeadIn);
+
+    player.seek(player.firstNoteBeat());
+    expect(player.beat).toBe(1); // parked on the first sounding note
+
+    click('#loopB');
+
+    expect(player.looping).toBe(false);
+    expect(player.loopStart).toBeNull();
+    expect(document.querySelector('#loopA').classList.contains('loop-set')).toBe(false);
+    expect(document.querySelector('#loopB').classList.contains('loop-set')).toBe(false);
+    expect(isHidden('#loopClear')).toBe(true);
+    expect(player.beat).toBe(1); // still on the music, not on the silent lead-in
+  });
+
   it('clears both ends and the tint', () => {
     open();
     player.seek(2);
@@ -261,21 +283,25 @@ describe('A-B loop control', () => {
 });
 
 describe('voice chips', () => {
-  it('mutes the part in the audio and dims it on the page', () => {
+  it.each(['soprano', 'alto', 'tenor', 'bass'])('mutes %s in the audio and dims it on the page', (voiceId) => {
+    // Every voice, not just one: controls.js keeps its own list of voice ids
+    // and score.js keeps another. A chip whose id drifts from the score's
+    // still looks and toggles fine — it just stops silencing anything.
     open();
-    const bass = document.querySelector('.chip-bass');
+    const chip = document.querySelector(`.chip-${voiceId}`);
+    const score$ = document.querySelector('#score');
 
-    bass.click();
+    chip.click();
 
-    expect(player.muted.has('bass')).toBe(true);
-    expect(bass.classList.contains('chip-on')).toBe(false);
-    expect(document.querySelector('#score').classList.contains('mute-bass')).toBe(true);
+    expect(player.muted.has(voiceId)).toBe(true);
+    expect(chip.classList.contains('chip-on')).toBe(false);
+    expect(score$.classList.contains(`mute-${voiceId}`)).toBe(true);
 
-    bass.click();
+    chip.click();
 
-    expect(player.muted.has('bass')).toBe(false);
-    expect(bass.classList.contains('chip-on')).toBe(true);
-    expect(document.querySelector('#score').classList.contains('mute-bass')).toBe(false);
+    expect(player.muted.has(voiceId)).toBe(false);
+    expect(chip.classList.contains('chip-on')).toBe(true);
+    expect(score$.classList.contains(`mute-${voiceId}`)).toBe(false);
   });
 
   it('offers all four parts, each labelled for the mobile initials', () => {
@@ -316,6 +342,25 @@ describe('verse picker', () => {
       .toEqual([false, false, true, false]);
     expect(document.querySelector('#score').textContent).toContain('v2-0');
     expect(document.querySelector('#score').textContent).not.toContain('v1-0');
+  });
+
+  it('opens the next hymn back on all verses', () => {
+    // The pick belongs to one hymn. Carried into the next it would print a
+    // page of empty staves under a chip nobody chose — and the next hymn may
+    // not even have that many verses.
+    open(song({ verses: 3 }));
+    document.querySelectorAll('.verse-chip')[2].click(); // verse 2 only
+
+    const next = song({ verses: 3 });
+    player.load(next);
+    score.render(next);
+    controls.showSong(next);
+
+    expect(score.verseFilter).toBe('all');
+    expect(document.querySelector('.verse-chip').classList.contains('verse-on')).toBe(true);
+    const printed = document.querySelector('#score').textContent;
+    expect(printed).toContain('v1-0');
+    expect(printed).toContain('v2-0');
   });
 
   it('rebuilds the picker for the next hymn', () => {

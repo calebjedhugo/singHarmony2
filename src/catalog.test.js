@@ -57,4 +57,14 @@ describe('fetchSong', () => {
 
     await expect(fetchSong('no-such-hymn')).resolves.toBeNull();
   });
+
+  it('returns null when the network is gone, rather than rejecting', async () => {
+    // openSong() is not awaited by the router, so a rejection here would be an
+    // unhandled one and would strand the reader on a view the URL disagrees
+    // with. Offline, a bookmarked hymn falls back to the list like any other
+    // slug the app cannot read.
+    global.fetch = jest.fn(() => Promise.reject(new TypeError('Failed to fetch')));
+
+    await expect(fetchSong('amazing-grace')).resolves.toBeNull();
+  });
 });

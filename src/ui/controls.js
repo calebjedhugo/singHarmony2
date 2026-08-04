@@ -107,7 +107,10 @@ export function createControls({ player, score, root = document }) {
   });
   loopB.addEventListener('click', () => {
     player.setLoopEnd();
-    player.seek(player.loopStart);
+    // B with no passage before it sets no loop at all, and there is no A to
+    // rewind to — seeking null would park playback on beat 0, which in a hymn
+    // that opens with a rest is not even where the music starts.
+    if (player.loopStart !== null) player.seek(player.loopStart);
     refreshLoopUI();
   });
   loopClear.addEventListener('click', () => {

@@ -110,10 +110,16 @@ export class Player {
     }
   }
 
-  /** Fire-and-forget warm of the loaded song — call when the piano already
-   *  exists (eager init path), so play() finds everything cached. */
+  /**
+   * Fire-and-forget warm of the loaded song — call when the piano already
+   * exists (eager init path), so play() finds everything cached. A failure is
+   * swallowed on purpose: nobody is waiting on it, play() will retry inside
+   * the gesture, and an escaping rejection would be an unhandled one. The
+   * promise is returned so a caller that does care can wait.
+   */
   warmAhead() {
-    if (this.piano && this.song) this.ensurePiano();
+    if (!this.piano || !this.song) return Promise.resolve();
+    return this.ensurePiano().catch(() => {});
   }
 
   async play() {
@@ -125,7 +131,7 @@ export class Player {
 
   seek(beat) { this.seq.seek(beat); }
 
-  rewind() { this.seq.seek(this.looping ? this._a : this.seq.startBeat); }
+  rewind() { this.seq.seek(this.looping ? this._a : this.firstNoteBeat()); }
 
   toggleMute(voiceId) { return this.seq.toggleMute(voiceId); }
 
@@ -146,9 +152,18 @@ export class Player {
   }
 
   setLoopEnd() {
-    this._b = this.seq.beat;
-    if (this._a === null || this._b <= this._a) this._a = this.seq.startBeat;
-    if (this._b <= this._a) this._b = null;
+    const b = this.seq.beat;
+    // B before A repairs the range by pulling A back to the top of the hymn.
+    const a = this._a !== null && this._a < b ? this._a : this.firstNoteBeat();
+    // ...but B at or before the top leaves no passage at all. Drop BOTH ends:
+    // keeping the repaired A would light the A button nobody pressed and offer
+    // the ✕ for a loop that does not exist.
+    if (b <= a) {
+      this.clearLoop();
+      return;
+    }
+    this._a = a;
+    this._b = b;
     this._syncLoop();
   }
 
