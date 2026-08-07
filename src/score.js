@@ -388,11 +388,15 @@ export class Score {
   _followRibbon(beat) {
     if (performance.now() < this._userScrollUntil) return;
     // Measure-snap: hold still within a measure, then flick the newly-reached
-    // measure flush to the left edge at each barline.
+    // measure flush to the left edge at each barline. Measure 0 scrolls all
+    // the way home instead — opening a hymn (or rewinding it) should show the
+    // clef and key signature, not start on bare noteheads.
     const measure = this.measureAt(beat);
     if (measure === this._lastMeasure) return;
     this._lastMeasure = measure;
-    this._flickTo(Math.max(0, this._xForBeat(this.gridStart(measure)) - this._scrollEdge()));
+    this._flickTo(measure === 0
+      ? 0
+      : Math.max(0, this._xForBeat(this.gridStart(measure)) - this._scrollEdge()));
   }
 
   _scrollEdge() {
