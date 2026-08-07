@@ -10,7 +10,7 @@
  * the choir dynamic, and the A-B loop's two-button behavior.
  */
 import {
-  Piano, Sequencer, initInstruments, instrumentReady,
+  Piano, Sequencer, getInstrument, initInstruments, instrumentReady,
 } from 'resound-sound';
 
 // Dynamic scales with how many voices sing: solo part loud, full choir soft.
@@ -83,12 +83,16 @@ export class Player {
    */
   async warmUp() {
     try {
-      const { piano } = await initInstruments({
+      const ready = initInstruments({
         piano: { id: PIANO_ID, layers: VELOCITY_LAYERS, pitches: CHROMATIC_RANGE },
       });
-      this.piano = piano;
-      for (const p of CHROMATIC_RANGE) for (const s of spellings(p)) this.warmed.add(s);
+      // The instance registers synchronously; take it NOW so a play tap only
+      // waits for its own song's pitches (queued ahead of the catalog warm)
+      // instead of the full-range pre-render.
+      this.piano = getInstrument(PIANO_ID) || (await ready).piano;
       if (this.song) this.warmAhead(); // a song opened while we were warming
+      await ready; // only now is the whole catalog cheap
+      for (const p of CHROMATIC_RANGE) for (const s of spellings(p)) this.warmed.add(s);
     } catch { /* lazy path: ensurePiano() builds one on the first play */ }
   }
 
@@ -105,7 +109,8 @@ export class Player {
     this.seq.instrument = this.piano;
     const need = this.seq.pitches().filter((p) => !this.warmed.has(p));
     if (need.length) {
-      await this.piano.warm(need);
+      // Jump the queue: the catalog warm can hum along behind this song.
+      await this.piano.warm(need, { front: true });
       need.forEach((p) => this.warmed.add(p));
     }
   }

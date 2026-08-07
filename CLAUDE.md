@@ -100,10 +100,14 @@ in the libraries.
   the final chord. `warmUp()` owns the eager path: it builds the shared piano
   at page load and pre-renders C2–B5 (both spellings — song data is in flats)
   while the user is still on the list, so the play tap has nothing to render.
-  A tap that beats it there waits on resound-sound's `instrumentReady()` and
-  takes THAT init's piano — never construct a second one in `ensurePiano()`,
-  or the gesture pays for the whole pre-render again with the warm buffers
-  sitting right there. The wait is what the play button's spinner shows.
+  `warmUp()` adopts the registry's instance synchronously (`getInstrument`),
+  so a tap that beats the pre-render warms only ITS song's pitches, passed
+  `{ front: true }` to jump the catalog-warm queue — never construct a second
+  piano in `ensurePiano()`, or the gesture pays for the whole pre-render again
+  with the warm buffers sitting right there. The short wait for the song's own
+  pitches is what the play button's spinner shows. (The pre-render itself runs
+  through Piano's bounded pool — 4 offline renders at a time — because
+  launching all 192 at once OOM-crashed small phones.)
 - **Score** (`src/score.js`): close score — S+A on the treble staff, T+B on the
   bass staff, braced, everyone at true pitch (no tenor 8va). NotationRenderer
   re-creates its SVG on responsive reflow, so ALL decoration (cursor index,

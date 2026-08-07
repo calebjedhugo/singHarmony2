@@ -104,7 +104,8 @@ describe('Player piano handling', () => {
     player.pause();
 
     expect(eager.warm).toHaveBeenCalledTimes(1);
-    expect(eager.warm).toHaveBeenCalledWith(['C3']); // C5 was already warm
+    // C5 was already warm; the song's pitches jump the catalog-warm queue
+    expect(eager.warm).toHaveBeenCalledWith(['C3'], { front: true });
     expect(player.piano).toBe(eager);
   });
 
@@ -119,7 +120,7 @@ describe('Player piano handling', () => {
     player.piano = eager;
     player.warmAhead();
 
-    expect(eager.warm).toHaveBeenCalledWith(['C5', 'C3']);
+    expect(eager.warm).toHaveBeenCalledWith(['C5', 'C3'], { front: true });
   });
 
   it('swallows a failed warm-ahead instead of rejecting into the page', async () => {
@@ -159,7 +160,9 @@ describe('Player piano handling', () => {
     const player = new Player();
     player.load(song());
     const warming = player.warmUp();
-    expect(player.piano).toBeNull(); // the tap lands here
+    // warmUp() adopts the registry's instance synchronously, so even a tap
+    // that lands immediately warms THAT piano instead of building a second one.
+    expect(player.piano).toBe(getInstrument('sing-harmony'));
 
     await player.play();
     await warming;

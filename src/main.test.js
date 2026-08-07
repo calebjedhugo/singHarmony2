@@ -128,6 +128,42 @@ describe('the song list and the way in and out of a hymn', () => {
     expect(location.search).toBe('?song=amazing-grace'); // the boot route must not re-push
   });
 
+  it('unhides the song view before engraving it', async () => {
+    // The ribbon render measures its own probe SVG with getBBox(), which
+    // reads 0 inside a display:none subtree and collapses the score to a
+    // sliver. Page mode self-heals through the renderer's ResizeObserver;
+    // ribbon opts out of it, so a hidden-at-render boot stayed broken. jsdom's
+    // getBBox is always 0, so the collapse itself is invisible here — the
+    // ORDER is not: the view must already be visible when render() runs.
+    window.history.replaceState({}, '', '/?song=amazing-grace');
+    mountApp();
+    global.fetch = jest.fn((path) => {
+      if (path === '/songs/index.json') return json({ songs: INDEX });
+      const slug = path.replace('/songs/', '').replace('.json', '');
+      return SONGS[slug] ? json(SONGS[slug]) : notFound();
+    });
+    jest.resetModules();
+    const hiddenAtRender = [];
+    jest.doMock('./score.js', () => {
+      const real = jest.requireActual('./score.js');
+      class Score extends real.Score {
+        render(song) {
+          hiddenAtRender.push(document.querySelector('#songView').hidden);
+          return super.render(song);
+        }
+      }
+      return { ...real, Score };
+    });
+    try {
+      await import('./main.js');
+      await settle();
+    } finally {
+      jest.dontMock('./score.js');
+    }
+
+    expect(hiddenAtRender).toEqual([false]);
+  });
+
   it('falls back to the list for a slug it cannot read, keeping the link', async () => {
     // A renamed hymn or a dead connection — the alternative is a blank song
     // view. The dead ?song= stays in the address bar on purpose: fetchSong()

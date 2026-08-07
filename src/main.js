@@ -50,15 +50,19 @@ async function openSong(slug, push) {
   player.warmAhead(); // pre-render this song's pitches before the play tap
   $('#songTitle').textContent = song.title;
   $('#songMeta').textContent = `${song.keySignature} · ${song.timeSignature[0]}/${song.timeSignature[1]}`;
+  // Unhide BEFORE rendering: the ribbon render measures its own probe SVG
+  // with getBBox(), which reads 0 inside a display:none subtree and collapses
+  // the whole score to its minimum width (page mode self-heals through the
+  // renderer's ResizeObserver; ribbon opts out of it and stays broken).
+  listView.hidden = true;
+  songView.hidden = false;
+  backBtn.hidden = false;
   layout.prepareMode(); // before render: setMode() would re-render the old song
   score.render(song);
   score.setMuted(player.muted);
   score.setCursor(player.beat, true);
   controls.showSong(song);
   layout.showSong(song);
-  listView.hidden = true;
-  songView.hidden = false;
-  backBtn.hidden = false;
   if (push) history.pushState({ slug }, '', `?song=${slug}`);
   document.title = `${song.title} · How to Sing Harmony`;
 }
