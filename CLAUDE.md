@@ -147,10 +147,16 @@ library calls and caches.
 
 - **Deterministic by design** (decision, 2026-08-07): the same key always
   yields the same score. Singers practicing a part must not have it re-voice
-  itself between sessions. Determinism comes from the algorithm itself (no
-  randomness) + the progression pin; the in-memory cache is just speed. A
-  resound-harmony version bump MAY change rewrites — that's a release note,
-  not a bug — but within a deployed build, output is stable.
+  itself between sessions — and a GROUP singing from separate phones must
+  all see the same music, so determinism must hold ACROSS devices, not just
+  within one. There is NO randomness anywhere in resound-harmony or this
+  app (no Math.random, no time-seeded anything; audited 2026-08-08), so no
+  seed is needed: identical build → identical score on every instance. The
+  determinism test in `rekey.test.js` recomputes under two cache-defeating
+  slugs and is the tripwire if randomness ever sneaks in. The in-memory
+  cache is just speed. A resound-harmony version bump MAY change rewrites —
+  that's a release note, not a bug — but within a deployed build, output is
+  stable everywhere.
 - **Key picker** = circle of fifths (`src/ui/keyWheel.js`, opened from the
   key chip in the song header). Twelve 30° donut wedges — finger-sized on
   phones. Minor hymns label the wheel with relative minors (Em, not G).

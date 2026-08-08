@@ -50,9 +50,15 @@ describe('rekeySong', () => {
 
   test('rewrites are deterministic (and cached: same object back)', () => {
     expect(rekeySong(song, 'A')).toBe(rekeySong(song, 'A'));
-    const fresh = load('amazing-grace');
-    expect(JSON.stringify(rekeySong(fresh, 'Bb').voices))
-      .toBe(JSON.stringify(rekeySong(load('amazing-grace'), 'Bb').voices));
+    // Same data under two different slugs defeats both caches, forcing two
+    // independent computations — this is the every-device guarantee: a group
+    // singing from separate phones must see the SAME score. There is no
+    // randomness anywhere in resound-harmony; this test is the tripwire in
+    // case any ever sneaks in.
+    const a = rekeySong({ ...load('amazing-grace'), slug: 'det-check-1' }, 'Bb');
+    const b = rekeySong({ ...load('amazing-grace'), slug: 'det-check-2' }, 'Bb');
+    expect(JSON.stringify(a.voices)).toBe(JSON.stringify(b.voices));
+    expect(JSON.stringify(a.voices)).toContain('"Bb'); // sanity: actually in Bb
   });
 
   test('rewrites keep the canonical progression and clean part writing', () => {
