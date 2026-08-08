@@ -30,6 +30,9 @@ function wedgePath(deg) {
  */
 export function createKeyWheel({ onPick }) {
   const btn = document.querySelector('#keyBtn');
+  // The song header (and its key chip) is hidden on small screens, where
+  // everything lives in the hamburger — so the menu carries a Key row too.
+  const menuBtn = document.querySelector('#keyMenuBtn');
   const popover = document.querySelector('#keyPopover');
   const wheelEl = document.querySelector('#keyWheel');
 
@@ -86,19 +89,24 @@ export function createKeyWheel({ onPick }) {
       group.classList.toggle('kw-original', key === original);
     }
     center.textContent = current ? labelFor(current) : '';
+    const rekeyed = current !== null && current !== original;
     btn.textContent = current || '';
-    btn.classList.toggle('rekeyed', current !== null && current !== original);
-    btn.title = current !== original
-      ? `Change key (original: ${labelFor(original)})`
-      : 'Change key';
+    btn.classList.toggle('rekeyed', rekeyed);
+    btn.title = rekeyed ? `Change key (original: ${labelFor(original)})` : 'Change key';
+    menuBtn.textContent = current
+      ? rekeyed ? `${labelFor(current)} · original ${labelFor(original)}` : labelFor(current)
+      : '';
+    menuBtn.classList.toggle('rekeyed', rekeyed);
   }
 
   function show() { popover.hidden = false; }
   function hide() { popover.hidden = true; }
 
-  btn.addEventListener('click', () => {
-    if (current) show();
-  });
+  for (const opener of [btn, menuBtn]) {
+    opener.addEventListener('click', () => {
+      if (current) show();
+    });
+  }
   // Tap the backdrop (not the card) to dismiss.
   popover.addEventListener('click', (ev) => {
     if (ev.target === popover) hide();
@@ -122,8 +130,10 @@ export function createKeyWheel({ onPick }) {
     },
     /** Rewriting takes a moment: reflect it on the chip. */
     setBusy(busy) {
-      btn.classList.toggle('busy', busy);
-      btn.disabled = busy;
+      for (const el of [btn, menuBtn]) {
+        el.classList.toggle('busy', busy);
+        el.disabled = busy;
+      }
     },
     hide,
   };

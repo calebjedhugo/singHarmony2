@@ -76,7 +76,21 @@ describe('key wheel', () => {
     const { wheel } = setup();
     wheel.setBusy(true);
     expect($('#keyBtn').disabled).toBe(true);
+    expect($('#keyMenuBtn').disabled).toBe(true);
     wheel.setBusy(false);
     expect($('#keyBtn').disabled).toBe(false);
+  });
+
+  test('the hamburger menu row opens the wheel and mirrors the state', () => {
+    // On small screens the song header (and its chip) is hidden, so the
+    // menu row is the only way in.
+    const { wheel } = setup();
+    expect($('#keyMenuBtn').textContent).toBe('G');
+    $('#keyMenuBtn').click();
+    expect($('#keyPopover').hidden).toBe(false);
+    $('#keyPopover').click();
+    wheel.setCurrent('Bb');
+    expect($('#keyMenuBtn').textContent).toBe('Bb · original G');
+    expect($('#keyMenuBtn').classList.contains('rekeyed')).toBe(true);
   });
 });

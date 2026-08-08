@@ -105,7 +105,7 @@ body {
 }
 /* desktop: the menu panel is transparent — its groups flow in the controls row */
 #menuPanel { display: contents; }
-#menuPanel .menu-title, #menuPanel .menu-links { display: none; }
+#menuPanel .menu-title, #menuPanel .menu-links, #menuPanel .key-wrap { display: none; }
 #menuBtn { display: none; }
 #playBtn { order: 0; }
 #menuPanel .transport { order: 1; }
@@ -169,6 +169,9 @@ body {
 .chip:not(.chip-on) { text-decoration: line-through; opacity: 0.7; }
 
 .tempo-wrap { display: flex; align-items: center; gap: 8px; color: var(--ink-soft); font-size: 0.8rem; }
+.key-wrap { align-items: center; gap: 8px; color: var(--ink-soft); font-size: 0.8rem; }
+.key-wrap .text-btn.rekeyed { color: var(--accent); font-weight: 600; }
+.key-wrap .text-btn.busy { animation: kw-pulse 0.9s ease-in-out infinite; pointer-events: none; }
 .tempo-wrap input[type="range"] { width: 130px; accent-color: var(--accent); }
 #tempoVal { min-width: 2.4em; text-align: right; font-variant-numeric: tabular-nums; color: var(--ink); }
 
@@ -282,6 +285,7 @@ body {
   .menu-links .text-btn { text-align: center; text-decoration: none; padding: 7px; }
   #menuPanel .transport { justify-content: center; }
   #menuPanel .tempo-wrap { justify-content: center; }
+  #menuPanel .key-wrap { display: flex; justify-content: center; }
   .verse-chip { padding: 3px 8px; min-width: 26px; font-size: 0.72rem; }
 }
 
@@ -312,7 +316,7 @@ body {
 @keyframes kw-pulse { 50% { opacity: 0.35; } }
 
 #keyPopover {
-  position: fixed; inset: 0; z-index: 40;
+  position: fixed; inset: 0; z-index: 45; /* above the mobile menu (40) */
   background: rgba(43, 38, 32, 0.45);
   display: flex; align-items: center; justify-content: center;
 }
