@@ -3,8 +3,8 @@
 Rewrite of the sing-harmony hymn app on resound-notation + resound-sound.
 Live at https://sing-harmony-beta.calebhugo.com (Pi port 8101).
 
-**Both resound deps are local `file:` links** (../resound-notation,
-../resound-sound) pending npm publishes of: two-voices-per-staff, multi-verse
+**All three resound deps are local `file:` links** (../resound-harmony,
+../resound-notation, ../resound-sound) pending npm publishes of: two-voices-per-staff, multi-verse
 lyrics, lyric spacing/baseline/size, tie flattening (notation) and
 initInstruments eager init + instrumentReady (sound). After publishing, switch package.json back
 to registry versions. Remember `npm run build` in each lib repo before an app
@@ -132,6 +132,40 @@ in the libraries.
   orientation, hamburger, rotate hint). `catalog.js` is the only place that
   fetches. Keep app policy in these modules and data interpretation out of all
   of them.
+
+## Multi-key (rekey)
+
+**The 74 shipped songs are CANONICAL.** They were curated by hand from public
+domain literature; nothing regenerates or rewrites them, and the original key
+always shows the original file verbatim (`rekeySong(song, originalKey) ===
+song`). Every other key is derived at runtime: melody transposed
+(`transposeNotes`), alto/tenor/bass rewritten by resound-harmony, **pinned to
+the original progression** (`analyzeScore` of the canonical four parts →
+`harmonize({ progression })`). This honors the governing principle — all
+musical interpretation lives in resound-harmony; `src/rekey.js` only composes
+library calls and caches.
+
+- **Deterministic by design** (decision, 2026-08-07): the same key always
+  yields the same score. Singers practicing a part must not have it re-voice
+  itself between sessions. Determinism comes from the algorithm itself (no
+  randomness) + the progression pin; the in-memory cache is just speed. A
+  resound-harmony version bump MAY change rewrites — that's a release note,
+  not a bug — but within a deployed build, output is stable.
+- **Key picker** = circle of fifths (`src/ui/keyWheel.js`, opened from the
+  key chip in the song header). Twelve 30° donut wedges — finger-sized on
+  phones. Minor hymns label the wheel with relative minors (Em, not G).
+  Original key = dashed ring; current = filled.
+- Rewrites in extreme registers retry once with widened ranges
+  (`WIDE_RANGES` in rekey.js) before giving up; `changeKey()` in main.js
+  stays on the current key if the engine throws.
+- `src/rekey.test.js` is the gate: originals unmutated, rewrites through the
+  same two oracles as shipped songs (NotationRenderer + buildTimeline),
+  clean `validateScore`, progression ≥85% kept, all 12 wheel keys valid.
+  **The canonical files are exempt from validateScore by design** — hymnal
+  part writing predates (and outranks) the package's rulebook.
+- Known limits: rekeyed scores drop `voiceLyrics` (the It Is Well echo) since
+  generated parts have their own rhythm; verse lyrics ride the soprano and
+  survive.
 
 ## Lyrics pipeline
 

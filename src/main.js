@@ -7,8 +7,10 @@ import { fetchIndex, fetchSong } from './catalog.js';
 import { Player } from './player.js';
 import { Score } from './score.js';
 import { createControls } from './ui/controls.js';
+import { createKeyWheel } from './ui/keyWheel.js';
 import { createLayout } from './ui/layout.js';
 import { createSongList } from './ui/songList.js';
+import { rekeySong, songMode } from './rekey.js';
 
 const $ = (sel) => document.querySelector(sel);
 const listView = $('#listView');
@@ -28,6 +30,11 @@ const songList = createSongList({
   searchEl: $('#search'),
   onOpen: (slug) => openSong(slug, true),
 });
+const keyWheel = createKeyWheel({ onPick: (key) => changeKey(key) });
+
+// The canonical song as fetched — every key change derives from THIS object,
+// never from a previous rewrite.
+let baseSong = null;
 
 player.onTick = (beat) => {
   // lead the highlight by 100ms so its transition is fully in at note onset
@@ -46,10 +53,16 @@ async function openSong(slug, push) {
     showList(push);
     return;
   }
+  baseSong = song;
   player.load(song);
   player.warmAhead(); // pre-render this song's pitches before the play tap
   $('#songTitle').textContent = song.title;
-  $('#songMeta').textContent = `${song.keySignature} · ${song.timeSignature[0]}/${song.timeSignature[1]}`;
+  setMeta(song);
+  keyWheel.showSong({
+    original: song.keySignature,
+    current: song.keySignature,
+    mode: songMode(song),
+  });
   // Unhide BEFORE rendering: the ribbon render measures its own probe SVG
   // with getBBox(), which reads 0 inside a display:none subtree and collapses
   // the whole score to its minimum width (page mode self-heals through the
@@ -65,6 +78,41 @@ async function openSong(slug, push) {
   layout.showSong(song);
   if (push) history.pushState({ slug }, '', `?song=${slug}`);
   document.title = `${song.title} · How to Sing Harmony`;
+}
+
+function setMeta(song) {
+  // keyBtn + meterVal concatenate to the same "G · 3/4" the header always
+  // showed — the key is just tappable now.
+  $('#keyBtn').textContent = song.keySignature;
+  $('#meterVal').textContent = ` · ${song.timeSignature[0]}/${song.timeSignature[1]}`;
+}
+
+/**
+ * Re-open the current hymn in another key: melody transposed, alto/tenor/
+ * bass rewritten around it (rekey.js), pinned to the original progression.
+ * The canonical key always shows the canonical, hand-curated score.
+ */
+async function changeKey(target) {
+  if (!baseSong) return;
+  keyWheel.setBusy(true);
+  // Let the busy state paint before the (synchronous) rewrite starts.
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  try {
+    const song = rekeySong(baseSong, target);
+    player.load(song);
+    player.warmAhead(); // the new key's accidentals may not be pre-rendered
+    setMeta(song);
+    score.render(song);
+    score.setMuted(player.muted);
+    score.setCursor(player.beat, true);
+    controls.showSong(song);
+    keyWheel.setCurrent(target);
+  } catch (err) {
+    // A key the engine can't voice for this tune: stay where we are.
+    console.error(`Could not rewrite in ${target}:`, err);
+  } finally {
+    keyWheel.setBusy(false);
+  }
 }
 
 function showList(push) {

@@ -11,6 +11,7 @@
     "convert": "node scripts/convert.mjs"
   },
   "dependencies": {
+    "resound-harmony": "file:../resound-harmony",
     "resound-notation": "file:../resound-notation",
     "resound-sound": "file:../resound-sound"
   },

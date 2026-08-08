@@ -299,3 +299,52 @@ body {
   margin-top: 18px; background: none; border: 1px solid rgba(255,255,255,0.4);
   color: inherit; border-radius: 999px; padding: 8px 18px; font-size: 0.85rem; cursor: pointer;
 }
+
+/* ---------- key picker (circle of fifths) ---------- */
+.key-btn {
+  font: inherit; color: inherit;
+  background: var(--card);
+  border: 1px solid var(--line); border-radius: 999px;
+  padding: 1px 10px; cursor: pointer;
+}
+.key-btn.rekeyed { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.key-btn.busy { animation: kw-pulse 0.9s ease-in-out infinite; pointer-events: none; }
+@keyframes kw-pulse { 50% { opacity: 0.35; } }
+
+#keyPopover {
+  position: fixed; inset: 0; z-index: 40;
+  background: rgba(43, 38, 32, 0.45);
+  display: flex; align-items: center; justify-content: center;
+}
+#keyCard {
+  background: var(--card);
+  border: 1px solid var(--line); border-radius: 14px;
+  padding: 14px 16px 10px;
+  width: min(88vw, 340px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+.kw-head {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1rem; text-align: center; margin-bottom: 6px;
+}
+#keyWheel svg { display: block; width: 100%; height: auto; touch-action: manipulation; }
+.kw-wedge path {
+  fill: var(--paper); stroke: var(--line); stroke-width: 1;
+  cursor: pointer;
+}
+.kw-wedge:hover path { fill: #f1e9d8; }
+.kw-wedge text {
+  font-size: 13px; fill: var(--ink); pointer-events: none;
+  font-weight: 500;
+}
+.kw-wedge.kw-original path { stroke: var(--ink-soft); stroke-width: 2.5; stroke-dasharray: 3 2; }
+.kw-wedge.kw-current path { fill: var(--accent); }
+.kw-wedge.kw-current text { fill: #fff; font-weight: 700; }
+.kw-center { font-size: 17px; font-weight: 700; fill: var(--ink); }
+.kw-note {
+  color: var(--ink-soft); font-size: 0.72rem; text-align: center; margin-top: 6px;
+}
+.kw-dot {
+  display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+  border: 2px dashed var(--ink-soft); vertical-align: -1px;
+}

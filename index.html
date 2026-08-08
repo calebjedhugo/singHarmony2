@@ -29,7 +29,7 @@
     <section id="songView" hidden>
       <div id="songHeader">
         <h2 id="songTitle"></h2>
-        <div id="songMeta"></div>
+        <div id="songMeta"><button id="keyBtn" class="key-btn" title="Change key"></button><span id="meterVal"></span></div>
       </div>
       <div id="controls">
         <button id="playBtn" class="play-btn" title="Play / pause (space)">
@@ -77,6 +77,15 @@
       </div>
       <div id="scoreWrap"><div id="score"></div></div>
     </section>
+  </div>
+
+  <!-- key picker: circle of fifths, opened from the key chip in the header -->
+  <div id="keyPopover" hidden>
+    <div id="keyCard">
+      <div class="kw-head">Change key</div>
+      <div id="keyWheel"></div>
+      <div class="kw-note"><span class="kw-dot"></span> original key &middot; other keys are rewritten around the tune</div>
+    </div>
   </div>
 
   <!-- shown only on small portrait touch screens with a song open -->
