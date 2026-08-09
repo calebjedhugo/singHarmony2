@@ -29,15 +29,15 @@ const voiceBeats = (voice) => voice.notes.reduce((sum, n) => {
 describe('rekeySong', () => {
   const song = load('amazing-grace'); // G major, 3/4, pickup, five verses
 
-  test('the original key IS the canonical object, untouched', () => {
+  test('the original key IS the canonical object, untouched', async () => {
     const before = JSON.stringify(song);
-    expect(rekeySong(song, 'G')).toBe(song);
-    rekeySong(song, 'A');
+    expect(await rekeySong(song, 'G')).toBe(song);
+    await rekeySong(song, 'A');
     expect(JSON.stringify(song)).toBe(before); // rewrites never mutate it
   });
 
-  test('a rewrite transposes the melody, keeps lyrics, rewrites the parts', () => {
-    const inA = rekeySong(song, 'A');
+  test('a rewrite transposes the melody, keeps lyrics, rewrites the parts', async () => {
+    const inA = await rekeySong(song, 'A');
     expect(inA.keySignature).toBe('A');
     expect(inA.rekeyedFrom).toBe('G');
     expect(inA.title).toBe(song.title);
@@ -48,35 +48,35 @@ describe('rekeySong', () => {
     expect(inA.voices.map((v) => v.id)).toEqual(['soprano', 'alto', 'tenor', 'bass']);
   });
 
-  test('rewrites are deterministic (and cached: same object back)', () => {
-    expect(rekeySong(song, 'A')).toBe(rekeySong(song, 'A'));
+  test('rewrites are deterministic (and cached: same object back)', async () => {
+    expect(await rekeySong(song, 'A')).toBe(await rekeySong(song, 'A'));
     // Same data under two different slugs defeats both caches, forcing two
     // independent computations — this is the every-device guarantee: a group
     // singing from separate phones must see the SAME score. There is no
     // randomness anywhere in resound-harmony; this test is the tripwire in
     // case any ever sneaks in.
-    const a = rekeySong({ ...load('amazing-grace'), slug: 'det-check-1' }, 'Bb');
-    const b = rekeySong({ ...load('amazing-grace'), slug: 'det-check-2' }, 'Bb');
+    const a = await rekeySong({ ...load('amazing-grace'), slug: 'det-check-1' }, 'Bb');
+    const b = await rekeySong({ ...load('amazing-grace'), slug: 'det-check-2' }, 'Bb');
     expect(JSON.stringify(a.voices)).toBe(JSON.stringify(b.voices));
     expect(JSON.stringify(a.voices)).toContain('"Bb'); // sanity: actually in Bb
   });
 
-  test('rewrites keep the canonical progression and clean part writing', () => {
-    const { analysis } = canonicalAnalysis(song);
-    const inA = rekeySong(song, 'A');
+  test('rewrites keep the canonical progression and clean part writing', async () => {
+    const { analysis } = await canonicalAnalysis(song);
+    const inA = await rekeySong(song, 'A');
     const byId = Object.fromEntries(inA.voices.map((v) => [v.id, v]));
     const { violations } = validateScore({
       soprano: byId.soprano.notes, alto: byId.alto.notes,
       tenor: byId.tenor.notes, bass: byId.bass.notes,
     });
     expect(violations).toEqual([]);
-    const rewritten = canonicalAnalysis({ ...inA, slug: 'amazing-grace-in-a' }).analysis;
+    const rewritten = (await canonicalAnalysis({ ...inA, slug: 'amazing-grace-in-a' })).analysis;
     const kept = rewritten.filter((a, i) => analysis[i] && a.symbol === analysis[i].symbol).length;
     expect(kept / analysis.length).toBeGreaterThan(0.85);
   });
 
-  test.each(['A', 'Eb'])('the rewrite in %s passes the same oracles as shipped songs', (target) => {
-    const rekeyed = rekeySong(song, target);
+  test.each(['A', 'Eb'])('the rewrite in %s passes the same oracles as shipped songs', async (target) => {
+    const rekeyed = await rekeySong(song, target);
 
     document.body.innerHTML = '<div id="scoreWrap"><div id="score"></div></div>';
     const score = new Score(document.querySelector('#score'));
@@ -88,20 +88,20 @@ describe('rekeySong', () => {
     expect(events[0].beat).toBeLessThan(rekeyed.pickupBeats || 3);
   });
 
-  test('a minor hymn stays minor in the new key', () => {
+  test('a minor hymn stays minor in the new key', async () => {
     const minor = load('what-child-is-this'); // E minor behind a G signature
-    expect(songMode(minor)).toBe('minor');
-    const inA = rekeySong(minor, 'A'); // F# minor behind an A signature
+    expect(await songMode(minor)).toBe('minor');
+    const inA = await rekeySong(minor, 'A'); // F# minor behind an A signature
     const bass = inA.voices.find((v) => v.id === 'bass');
     const last = [...bass.notes].reverse().find((n) => n.pitch);
     expect(last.pitch.startsWith('F#')).toBe(true);
   });
 
-  test('every REWRITTEN key produces a clean score for a pickup hymn', () => {
+  test('every REWRITTEN key produces a clean score for a pickup hymn', async () => {
     // The original key is exempt by design: it returns the hand-curated
     // hymnal score verbatim, which pre-dates (and outranks) our rulebook.
     for (const target of KEYS.filter((k) => k !== song.keySignature)) {
-      const rekeyed = rekeySong(song, target);
+      const rekeyed = await rekeySong(song, target);
       const byId = Object.fromEntries(rekeyed.voices.map((v) => [v.id, v]));
       const { violations } = validateScore({
         soprano: byId.soprano.notes, alto: byId.alto.notes,

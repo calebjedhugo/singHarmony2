@@ -123,6 +123,11 @@ export function createKeyWheel({ onPick }) {
       mode = songMode || 'major';
       paint();
     },
+    /** Late mode arrival (the analysis loads lazily): relabel the wheel. */
+    setMode(songMode) {
+      mode = songMode || 'major';
+      paint();
+    },
     /** The displayed key changed (after a successful rekey). */
     setCurrent(key) {
       current = key;

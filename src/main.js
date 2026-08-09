@@ -10,7 +10,7 @@ import { createControls } from './ui/controls.js';
 import { createKeyWheel } from './ui/keyWheel.js';
 import { createLayout } from './ui/layout.js';
 import { createSongList } from './ui/songList.js';
-import { rekeySong, songMode } from './rekey.js';
+import { loadHarmony, rekeySong, songMode } from './rekey.js';
 
 const $ = (sel) => document.querySelector(sel);
 const listView = $('#listView');
@@ -61,8 +61,12 @@ async function openSong(slug, push) {
   keyWheel.showSong({
     original: song.keySignature,
     current: song.keySignature,
-    mode: songMode(song),
   });
+  // The major/minor wheel labels come from the harmony chunk's analysis;
+  // don't hold the score render for it — relabel when it arrives.
+  songMode(song).then((mode) => {
+    if (baseSong === song) keyWheel.setMode(mode);
+  }).catch(() => {});
   // Unhide BEFORE rendering: the ribbon render measures its own probe SVG
   // with getBBox(), which reads 0 inside a display:none subtree and collapses
   // the whole score to its minimum width (page mode self-heals through the
@@ -98,7 +102,7 @@ async function changeKey(target) {
   // Let the busy state paint before the (synchronous) rewrite starts.
   await new Promise((resolve) => setTimeout(resolve, 30));
   try {
-    const song = rekeySong(baseSong, target);
+    const song = await rekeySong(baseSong, target);
     player.load(song);
     player.warmAhead(); // the new key's accidentals may not be pre-rendered
     setMeta(song);
@@ -147,6 +151,11 @@ fetchIndex()
   .then((songs) => songList.setSongs(songs))
   .catch(() => songList.showError('Could not load the hymn list. Check your connection and reload.'))
   .finally(() => route(false));
+
+// Pull the rekey engine in behind everything that matters — it's only needed
+// when a key changes, but prefetching it now makes that first tap instant.
+const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 2000));
+idle(() => { loadHarmony().catch(() => {}); });
 
 // debugging handle (also used by automated tests)
 window.__sh = { player, score };

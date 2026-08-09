@@ -11,7 +11,19 @@
  * this module only composes library calls and caches results.
  */
 
-import { analyzeScore, transposeNotes, harmonize } from 'resound-harmony';
+// resound-harmony is the largest dependency after the renderer, and nothing
+// on the list page or the default-key song page needs it — only a key change
+// (and the wheel's major/minor labels) do. Loading it on demand keeps it out
+// of the boot bundle; main.js prefetches it during idle so the first key tap
+// doesn't pay the network hop.
+let harmonyModule = null;
+let harmonyLoading = null;
+
+/** Fetch the resound-harmony chunk (memoized). Safe to call early to prefetch. */
+export function loadHarmony() {
+  harmonyLoading ??= import('resound-harmony').then((m) => { harmonyModule = m; return m; });
+  return harmonyLoading;
+}
 
 /** The twelve key signatures, circle-of-fifths order, app spellings. */
 export const KEYS = ['C', 'G', 'D', 'A', 'E', 'B', 'F#', 'Db', 'Ab', 'Eb', 'Bb', 'F'];
@@ -37,14 +49,16 @@ const voicesById = (song) => Object.fromEntries(song.voices.map((v) => [v.id, v]
 
 /**
  * Roman-numeral analysis of the canonical harmonization (cached per song).
+ * Sync core — requires the chunk loaded; external callers use the async
+ * export below.
  */
-export function canonicalAnalysis(song) {
+function analysisFor(song) {
   let cached = analysisCache.get(song.slug);
   if (!cached) {
     const byId = voicesById(song);
     // Not four-part (test fixtures, future one-off songs): nothing to pin to.
     if (!byId.soprano || !byId.alto || !byId.tenor || !byId.bass) return null;
-    cached = analyzeScore(
+    cached = harmonyModule.analyzeScore(
       { soprano: byId.soprano.notes, alto: byId.alto.notes, tenor: byId.tenor.notes, bass: byId.bass.notes },
       { key: song.keySignature, timeSignature: song.timeSignature, pickupBeats: song.pickupBeats || 0 },
     );
@@ -53,24 +67,33 @@ export function canonicalAnalysis(song) {
   return cached;
 }
 
+/** Roman-numeral analysis of the canonical harmonization (cached per song). */
+export async function canonicalAnalysis(song) {
+  await loadHarmony();
+  return analysisFor(song);
+}
+
 /** 'major' or 'minor', as the canonical harmonization reads. */
-export function songMode(song) {
-  return canonicalAnalysis(song)?.key.mode || 'major';
+export async function songMode(song) {
+  await loadHarmony();
+  return analysisFor(song)?.key.mode || 'major';
 }
 
 /**
  * The song in another key. Same object back for the original key; otherwise
  * a new song object (the canonical one is never mutated) with the melody
- * transposed and the other parts rewritten around it.
+ * transposed and the other parts rewritten around it. Async only for the
+ * chunk load — the rewrite itself is synchronous and deterministic.
  */
-export function rekeySong(song, target) {
+export async function rekeySong(song, target) {
   if (target === song.keySignature) return song;
   const cacheKey = `${song.slug}|${target}`;
   let rekeyed = rekeyCache.get(cacheKey);
   if (rekeyed) return rekeyed;
 
+  const { transposeNotes, harmonize } = await loadHarmony();
   const byId = voicesById(song);
-  const analysis = canonicalAnalysis(song)?.analysis; // undefined = no pin
+  const analysis = analysisFor(song)?.analysis; // undefined = no pin
   const melody = transposeNotes(byId.soprano.notes, song.keySignature, target);
   const opts = {
     key: target,
