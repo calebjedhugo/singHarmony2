@@ -170,10 +170,15 @@ export class Score {
     this.container.classList.toggle('ribbon', ribbon);
     this.wrap.classList.toggle('ribbon-view', ribbon);
     if (ribbon) {
-      // One long system: render at an effectively-infinite width, measure the
-      // natural content extent, then re-render tight so the viewBox hugs it.
+      // One long system: render at an effectively-infinite width, take the
+      // renderer's measured content extent, then re-render tight so the
+      // viewBox hugs it. getContentWidth() is the renderer's own layout
+      // number — no getBBox sweep over the live SVG (which forced a
+      // synchronous layout per element and reads 0 in jsdom anyway).
       this._engrave(data, RIBBON_PROBE_WIDTH);
-      this._engrave(data, this._contentRightEdge() + RIBBON_RIGHT_MARGIN);
+      const content = this.renderer.getContentWidth();
+      const right = content ? Math.max(content, RIBBON_MIN_WIDTH) : this._contentRightEdge();
+      this._engrave(data, right + RIBBON_RIGHT_MARGIN);
     } else {
       this._engrave(data);
     }
