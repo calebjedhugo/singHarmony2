@@ -169,9 +169,16 @@ library calls and caches.
   clean `validateScore`, progression ≥85% kept, all 12 wheel keys valid.
   **The canonical files are exempt from validateScore by design** — hymnal
   part writing predates (and outranks) the package's rulebook.
-- Known limits: rekeyed scores drop `voiceLyrics` (the It Is Well echo) since
-  generated parts have their own rhythm; verse lyrics ride the soprano and
-  survive.
+- Rekeys are TEMPLATE-BASED (2026-08-08): each generated voice mirrors its
+  own ORIGINAL's attack pattern (rests included — antiphonal refrains
+  survive), and passages where the original is melodic rather than harmonic
+  (texted echo phrases, off-grid runs, T/B unison spans) come through as the
+  TRANSPOSED originals with their lyrics. Bass-staff lyric lines (It Is
+  Well, Wonderful Grace of Jesus) therefore survive rekeying. Chord changes
+  under held melody notes (analyzer sub-slots) regenerate correctly too.
+  Rekeyed antiphonal songs may carry validateScore flags inside template
+  spans — that content mirrors the canonical original, which is exempt from
+  the rulebook by design.
 
 ## Lyrics pipeline
 

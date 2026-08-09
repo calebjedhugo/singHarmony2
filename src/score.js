@@ -35,10 +35,11 @@ const SCRUB_SETTLE_MS = 250;
 const FLICK_MS = 380;
 /** A click further than this (px) from any system is not a seek. */
 const CLICK_SYSTEM_REACH = 400;
-/** Where the playing measure's left edge sits: clear of the floating SATB
- *  buttons on mobile (prior music stays visible around them), modest margin
- *  elsewhere. Mobile ribbon gets matching content padding-left so measure 1
- *  starts clear of the buttons too. */
+/** Where the playing measure's OPENING BARLINE sits (everything the measure
+ *  owns is engraved right of it): clear of the floating SATB buttons on
+ *  mobile (prior music stays visible around them), modest margin elsewhere.
+ *  Mobile ribbon gets matching content padding-left so measure 1 starts
+ *  clear of the buttons too. */
 const EDGE_PX = { mobile: 56, desktop: 30 };
 const MOBILE_QUERY = '(max-width: 700px), (max-height: 500px)';
 
@@ -273,6 +274,7 @@ export class Score {
   /** Anchor positions (content-relative px) for ribbon follow + click-to-measure. */
   _measureAnchors(svg) {
     this._anchors = [];
+    this._barlineXs = [];
     this._lastMeasure = -1;
     const scoreRect = this.container.getBoundingClientRect();
     for (const group of svg.querySelectorAll('[data-voice-id="soprano"][data-system-index]')) {
@@ -290,6 +292,27 @@ export class Score {
       }
     }
     this._anchors.sort((a, b) => a.beat - b.beat);
+    // Barline positions: the ribbon flick aligns a measure's OPENING barline
+    // at the edge, since everything the measure owns — accidentals, wrong-side
+    // noteheads, its first syllable — is engraved right of that barline. Note
+    // anchors alone can't bound it: accidentals live in the staff group, not
+    // the note's data-beat group, so note boxes miss them.
+    for (const el of svg.querySelectorAll('.bar-line, .shared-bar-line')) {
+      const r = el.getBoundingClientRect();
+      this._barlineXs.push(r.left - scoreRect.left);
+    }
+    this._barlineXs.sort((a, b) => a - b);
+  }
+
+  /** Content-relative x of `measure`'s opening barline (its true left bound);
+   *  falls back to the first-onset anchor when no barline is left of it. */
+  _measureStartX(measure) {
+    const noteX = this._xForBeat(this.gridStart(measure));
+    let best = null;
+    for (const x of this._barlineXs) {
+      if (x < noteX - 1 && (best === null || x > best)) best = x;
+    }
+    return best === null ? noteX : best;
   }
 
   /** Interpolated content-relative x for a beat (ribbon follow). */
@@ -396,7 +419,7 @@ export class Score {
     this._lastMeasure = measure;
     this._flickTo(measure === 0
       ? 0
-      : Math.max(0, this._xForBeat(this.gridStart(measure)) - this._scrollEdge()));
+      : Math.max(0, this._measureStartX(measure) - this._scrollEdge()));
   }
 
   _scrollEdge() {

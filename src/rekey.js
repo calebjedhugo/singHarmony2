@@ -77,6 +77,13 @@ export function rekeySong(song, target) {
     timeSignature: song.timeSignature,
     pickupBeats: song.pickupBeats || 0,
     progression: analysis,
+    // Each generated voice mirrors ITS OWN original's rhythm (rests and the
+    // antiphonal refrain echos included); echo runs come through as the
+    // transposed originals, carrying their bass-staff lyrics.
+    voiceTemplates: { alto: byId.alto.notes, tenor: byId.tenor.notes, bass: byId.bass.notes },
+    templatesFromKey: song.keySignature,
+    // Fallback homorhythm if templates are ever absent (not four-part).
+    matchMelodyRhythm: true,
   };
   let result;
   try {
