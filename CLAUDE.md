@@ -137,8 +137,10 @@ in the libraries.
 
 **The 74 shipped songs are CANONICAL.** They were curated by hand from public
 domain literature; nothing regenerates or rewrites them, and the original key
-always shows the original file verbatim (`rekeySong(song, originalKey) ===
-song`). Every other key is derived at runtime: melody transposed
+always shows the original file verbatim (`await rekeySong(song, originalKey)
+=== song`). rekeySong/songMode/canonicalAnalysis are async: resound-harmony
+loads as a lazy chunk (`loadHarmony()` in rekey.js, prefetched at idle by
+main.js) so the boot bundle ships without the rekey engine. Every other key is derived at runtime: melody transposed
 (`transposeNotes`), alto/tenor/bass rewritten by resound-harmony, **pinned to
 the original progression** (`analyzeScore` of the canonical four parts →
 `harmonize({ progression })`). This honors the governing principle — all
