@@ -33,15 +33,43 @@ const USER_SCROLL_GRACE_MS = 2500;
 const SCRUB_SETTLE_MS = 250;
 /** Ease-out duration of the measure-to-measure ribbon flick. */
 const FLICK_MS = 380;
+/** Smooth follow: how fast the ribbon closes on the cursor's position, as an
+ *  exponential time constant. The Sequencer only ticks every ~25ms (and not
+ *  evenly), so the ribbon can't just be parked on each reported beat — it
+ *  chases the beat on its own frame loop instead, which turns the tick jitter
+ *  into steady motion. Small enough that the music never visibly trails the
+ *  cursor, large enough to swallow a late tick. */
+const SMOOTH_TAU_MS = 110;
+/** A frame after a stall (backgrounded tab) must not teleport the ribbon. */
+const SMOOTH_MAX_FRAME_MS = 100;
+/** Within this many px of the target the chase has arrived; the next tick
+ *  restarts it. Lets a paused ribbon settle instead of spinning frames. */
+const SMOOTH_ARRIVED_PX = 0.4;
+const SCROLL_STYLES = ['smooth', 'snap'];
 /** A click further than this (px) from any system is not a seek. */
 const CLICK_SYSTEM_REACH = 400;
 /** Where the playing measure's OPENING BARLINE sits (everything the measure
  *  owns is engraved right of it): clear of the floating SATB buttons on
  *  mobile (prior music stays visible around them), modest margin elsewhere.
  *  Mobile ribbon gets matching content padding-left so measure 1 starts
- *  clear of the buttons too. */
-const EDGE_PX = { mobile: 56, desktop: 30 };
+ *  clear of the buttons too — KEEP #score.ribbon's padding-left in style.css
+ *  equal to the mobile value.
+ *  Mobile clears the buttons by a full button-width rather than butting up
+ *  against them: the notes SOUNDING sit further right still (a measure's
+ *  lead-in plus however far into the measure playback is), and at 56 they
+ *  were reaching the toggles. */
+const EDGE_PX = { mobile: 112, desktop: 30 };
 const MOBILE_QUERY = '(max-width: 700px), (max-height: 500px)';
+
+/** Left cutout inset in px — nonzero when a hardware cutout (Dynamic Island /
+ *  notch) sits on the left edge in the CURRENT orientation, which is also how
+ *  far CSS has pushed the floating SATB stack inward. --pad-left is the side
+ *  layout.js resolved; --safe-left is the raw env() it stands in for. */
+function safeLeftPx() {
+  const cs = getComputedStyle(document.documentElement);
+  const raw = cs.getPropertyValue('--pad-left') || cs.getPropertyValue('--safe-left');
+  return parseFloat(raw) || 0;
+}
 
 /** Ribbon fit (see render()): engrave once at a width no system can fill, so
  *  the music lays out as one line; then re-engrave to its measured extent plus
@@ -88,6 +116,8 @@ export class Score {
     this.song = null;
     this.verseFilter = 'all'; // 'all' | 0-based verse index
     this.mode = 'page'; // 'page' | 'ribbon'
+    this.scrollStyle = 'smooth'; // ribbon follow: 'smooth' | 'snap'
+    this._smoothRaf = null;
     this.noteIndex = new Map(); // voiceId -> sorted [{el, beat}]
     this.activeEls = [];
     this.lastBeat = -1;
@@ -414,7 +444,17 @@ export class Score {
   // ---------- scrolling ----------
 
   _followRibbon(beat) {
-    if (performance.now() < this._userScrollUntil) return;
+    if (performance.now() < this._userScrollUntil) {
+      this._stopSmooth(); // the reader has the ribbon; don't fight the drag
+      return;
+    }
+    if (this.scrollStyle === 'smooth') {
+      // Continuous: the music glides past a fixed reading point at the tempo
+      // it is played, so the eye never has to re-find its place at a barline.
+      this._smoothTarget = this._flowTarget(beat);
+      this._startSmooth();
+      return;
+    }
     // Measure-snap: hold still within a measure, then flick the newly-reached
     // measure flush to the left edge at each barline. Measure 0 scrolls all
     // the way home instead — opening a hymn (or rewinding it) should show the
@@ -427,8 +467,62 @@ export class Score {
       : Math.max(0, this._measureStartX(measure) - this._scrollEdge()));
   }
 
+  /** Where the ribbon should sit for `beat` in smooth mode — the SAME reading
+   *  point the flick uses, just arrived at continuously. The flick parks a
+   *  measure's opening barline at the edge, so the notes it owns sit a lead-in
+   *  further right; tracking the notehead alone would drop that lead-in and
+   *  pin the music against the left of the screen. Carrying the current
+   *  measure's lead-in makes the two styles agree exactly at every barline and
+   *  keeps the notes tracked in between. */
+  _flowTarget(beat) {
+    const measure = this.measureAt(beat);
+    // measure 0 goes home, same as the flick: start on the clef and key
+    // signature, not on bare noteheads.
+    if (measure === 0) return 0;
+    const lead = this._xForBeat(this.gridStart(measure)) - this._measureStartX(measure);
+    return Math.max(0, this._xForBeat(beat) - lead - this._scrollEdge());
+  }
+
+  /** 'smooth' = continuous glide (default), 'snap' = flick at each barline. */
+  setScrollStyle(style) {
+    this.scrollStyle = SCROLL_STYLES.includes(style) ? style : 'smooth';
+    this._stopSmooth();
+    this._lastMeasure = -1; // a snap-mode flick must re-align from wherever we are
+  }
+
+  /** Frame loop chasing _smoothTarget. Exponential, so a late or bunched tick
+   *  bends the motion instead of jolting it, and it can't overshoot. */
+  _startSmooth() {
+    if (this._smoothRaf !== null) return;
+    this._smoothLast = performance.now();
+    this._tweening = true; // programmatic scrolls: not the reader scrubbing
+    const step = (now) => {
+      this._smoothRaf = null;
+      const handOver = this.mode !== 'ribbon'
+        || this.scrollStyle !== 'smooth'
+        || performance.now() < this._userScrollUntil;
+      if (handOver) { this._tweening = false; return; }
+      const dt = Math.min(SMOOTH_MAX_FRAME_MS, Math.max(0, now - this._smoothLast));
+      this._smoothLast = now;
+      const cur = this.wrap.scrollLeft;
+      const delta = this._smoothTarget - cur;
+      if (Math.abs(delta) < SMOOTH_ARRIVED_PX) { this._tweening = false; return; }
+      this.wrap.scrollLeft = cur + delta * (1 - Math.exp(-dt / SMOOTH_TAU_MS));
+      this._smoothRaf = requestAnimationFrame(step);
+    };
+    this._smoothRaf = requestAnimationFrame(step);
+  }
+
+  _stopSmooth() {
+    if (this._smoothRaf !== null) cancelAnimationFrame(this._smoothRaf);
+    this._smoothRaf = null;
+    this._tweening = false;
+  }
+
   _scrollEdge() {
-    return window.matchMedia(MOBILE_QUERY).matches ? EDGE_PX.mobile : EDGE_PX.desktop;
+    return window.matchMedia(MOBILE_QUERY).matches
+      ? EDGE_PX.mobile + safeLeftPx()
+      : EDGE_PX.desktop;
   }
 
   /** Ease-out scroll tween. setTimeout-driven — native smooth scrollTo is

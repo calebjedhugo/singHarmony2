@@ -14,9 +14,11 @@ import { createLayout } from './layout.js';
 function fakeScore() {
   return {
     mode: 'page',
+    scrollStyle: 'smooth',
     song: null,
     renders: 0,
     remeasures: 0,
+    setScrollStyle(style) { this.scrollStyle = style; },
     setMode(mode) { this.mode = mode; if (this.song) this.renders++; },
     render() { this.renders++; },
     remeasure() { this.remeasures++; },
@@ -250,5 +252,132 @@ describe('hamburger menu', () => {
 
     expect(document.body.classList.contains('menu-open')).toBe(false);
     expect(document.querySelector('#menuPanel .menu-title').textContent).toBe('Amazing Grace');
+  });
+});
+
+describe('hardware cutout', () => {
+  /** iOS reports the notch depth on BOTH landscape edges; the app has to pick. */
+  const symmetricInsets = () => {
+    document.documentElement.style.setProperty('--safe-left', '59px');
+    document.documentElement.style.setProperty('--safe-right', '59px');
+  };
+  const rotate = (angle) => {
+    Object.defineProperty(window.screen, 'orientation', {
+      configurable: true, value: { angle },
+    });
+  };
+  const pads = () => [
+    document.documentElement.style.getPropertyValue('--pad-left'),
+    document.documentElement.style.getPropertyValue('--pad-right'),
+  ];
+
+  beforeEach(() => { document.documentElement.removeAttribute('style'); });
+
+  it('keeps the controls off a cutout on the left', () => {
+    symmetricInsets();
+    rotate(90);
+
+    mount(PHONE_LANDSCAPE);
+
+    expect(pads()).toEqual(['59px', '0px']);
+  });
+
+  it('leaves the left edge alone when the cutout is on the right', () => {
+    symmetricInsets();
+    rotate(270);
+
+    mount(PHONE_LANDSCAPE);
+
+    expect(pads()).toEqual(['0px', '59px']);
+  });
+
+  it('accepts the legacy -90', () => {
+    symmetricInsets();
+    Object.defineProperty(window.screen, 'orientation', {
+      configurable: true, value: { angle: -90 },
+    });
+
+    mount(PHONE_LANDSCAPE);
+
+    expect(pads()).toEqual(['0px', '59px']);
+  });
+
+  it('re-resolves the side on rotation', () => {
+    symmetricInsets();
+    rotate(90);
+    mount(PHONE_LANDSCAPE);
+
+    rotate(270);
+    window.dispatchEvent(new Event('orientationchange'));
+
+    expect(pads()).toEqual(['0px', '59px']);
+  });
+
+  it('stays clear of both edges when the rotation is unknown', () => {
+    symmetricInsets();
+    rotate(0);
+
+    mount(PHONE_PORTRAIT);
+
+    expect(pads()).toEqual(['59px', '59px']);
+  });
+});
+
+describe('ribbon scroll style', () => {
+  const btn = () => document.querySelector('#scrollStyleBtn');
+
+  it('follows the music continuously unless the reader says otherwise', () => {
+    mount(PHONE_LANDSCAPE);
+
+    expect(score.scrollStyle).toBe('smooth');
+    expect(btn().textContent).toBe('continuous');
+  });
+
+  it('switches to the measure snap and remembers it', () => {
+    mount(PHONE_LANDSCAPE);
+
+    btn().click();
+
+    expect(score.scrollStyle).toBe('snap');
+    expect(btn().textContent).toBe('measure by measure');
+    expect(localStorage.getItem('sh-ribbon-scroll')).toBe('snap');
+  });
+
+  it('opens the next visit on the saved style', () => {
+    localStorage.setItem('sh-ribbon-scroll', 'snap');
+
+    mount(PHONE_LANDSCAPE);
+
+    expect(score.scrollStyle).toBe('snap');
+    expect(btn().textContent).toBe('measure by measure');
+  });
+
+  it('toggles back, and remembers that too', () => {
+    localStorage.setItem('sh-ribbon-scroll', 'snap');
+    mount(PHONE_LANDSCAPE);
+
+    btn().click();
+
+    expect(score.scrollStyle).toBe('smooth');
+    expect(localStorage.getItem('sh-ribbon-scroll')).toBe('smooth');
+  });
+
+  it('ignores a garbage saved value', () => {
+    localStorage.setItem('sh-ribbon-scroll', 'sideways');
+
+    mount(PHONE_LANDSCAPE);
+
+    expect(score.scrollStyle).toBe('smooth');
+  });
+
+  it('is offered in ribbon mode only — page mode never scrolls sideways', () => {
+    const layout = mount(PHONE_LANDSCAPE);
+    layout.prepareMode();
+    expect(document.querySelector('.scroll-wrap').hasAttribute('hidden')).toBe(false);
+
+    document.querySelector('#modeBtn').click();
+
+    expect(score.mode).toBe('page');
+    expect(document.querySelector('.scroll-wrap').hasAttribute('hidden')).toBe(true);
   });
 });

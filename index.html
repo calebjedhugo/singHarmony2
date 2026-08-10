@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- viewport-fit=cover: opt into the full display so iOS reports real
+       safe-area insets; every floating control offsets itself by them
+       (see --safe-* in style.css) instead of hiding under the camera. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>How to Sing Harmony</title>
   <meta name="description" content="Learn to sing hymn harmony. Isolate soprano, alto, tenor, or bass and follow the score as it plays.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#127925;</text></svg>">
@@ -10,12 +13,12 @@
 <body>
   <div id="app">
     <header id="topbar">
-      <button id="backBtn" class="icon-btn" title="Back to song list" hidden>&#8592;</button>
       <h1 id="appTitle">How to Sing Harmony <span class="beta">beta</span></h1>
       <a id="homeLink" href="https://calebhugo.com" title="calebhugo.com">calebhugo.com</a>
     </header>
 
     <section id="listView">
+      <p id="silentHint">Make sure your device is not on silent.</p>
       <div class="list-controls">
         <input id="search" type="search" placeholder="Search hymns&hellip;" autocomplete="off">
       </div>
@@ -27,6 +30,7 @@
     </section>
 
     <section id="songView" hidden>
+      <button id="backBtn" class="back-btn" title="Back to song list" hidden>&#8592; All songs</button>
       <div id="songHeader">
         <h2 id="songTitle"></h2>
         <div id="songMeta"><button id="keyBtn" class="key-btn" title="Change key"></button><span id="meterVal"></span></div>
@@ -57,6 +61,10 @@
               <svg viewBox="0 0 24 24" class="ic-ribbon"><path d="M3 7h18v2H3zm0 4h18v2H3zm0 4h12v2H3z" transform="rotate(90 12 12)"/></svg>
               <svg viewBox="0 0 24 24" class="ic-page" hidden><path d="M3 5h18v2H3zm0 6h18v2H3zm0 6h18v2H3z"/></svg>
             </button>
+          </div>
+          <div class="scroll-wrap" hidden>
+            <label for="scrollStyleBtn">Scroll</label>
+            <button id="scrollStyleBtn" class="text-btn" title="How the ribbon follows the music"></button>
           </div>
           <div class="key-wrap">
             <label for="keyMenuBtn">Key</label>
@@ -96,7 +104,7 @@
   <div id="rotateHint" hidden>
     <div>
       <span class="phone-icon">&#128241;</span>
-      Rotate your phone sideways&mdash;<br>the music is much bigger in landscape.
+      Rotate your phone sideways for the best experience.
       <br><button type="button">Keep portrait</button>
     </div>
   </div>

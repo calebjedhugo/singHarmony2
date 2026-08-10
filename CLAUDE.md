@@ -10,8 +10,8 @@ initInstruments eager init + instrumentReady (sound). After publishing, switch p
 to registry versions. Remember `npm run build` in each lib repo before an app
 build — Vite bundles from their dist/.
 
-Key UX: page/ribbon score modes (ribbon = one long system, measure-snap
-horizontal scroll; default on phone landscape), verse picker, A-B loop,
+Key UX: page/ribbon score modes (ribbon = one long system scrolling
+horizontally; default on phone landscape), verse picker, A-B loop,
 per-voice mute, eager piano warm-up at page load (~2ms play-tap latency) with
 a spinner on the play button for a tap that beats it there.
 
@@ -129,9 +129,24 @@ in the libraries.
   factories that each take the player and/or score and wire one region of
   `index.html`: `ui/songList.js` (list + search), `ui/controls.js` (transport,
   tempo, A-B loop, verse picker, SATB chips), `ui/layout.js` (page/ribbon mode,
-  orientation, hamburger, rotate hint). `catalog.js` is the only place that
+  ribbon scroll style, hardware-cutout insets, orientation, hamburger, rotate
+  hint). `catalog.js` is the only place that
   fetches. Keep app policy in these modules and data interpretation out of all
   of them.
+- **Ribbon follow** has two styles, remembered in `sh-ribbon-scroll` and
+  toggled from the hamburger ("Scroll"): `smooth` (default) chases the cursor's
+  interpolated x on its own rAF loop — the Sequencer ticks only every ~25ms, so
+  parking the ribbon on each reported beat would stutter; `snap` is the older
+  flick that holds still and re-aligns at each barline. Either way a wheel or
+  touchmove hands the ribbon to the reader (`_userScrollUntil`) and drag-scrub
+  takes over, so anything that scrolls programmatically must clear `_tweening`
+  when it stands down or scrub goes dead.
+- **Hardware cutouts**: iOS reports the SAME horizontal safe-area inset on both
+  landscape edges, so `applyCutoutInsets()` resolves the Dynamic Island to one
+  side from `screen.orientation.angle` (90 = left) and publishes `--pad-left` /
+  `--pad-right`. CSS reads them via `--cut-left` / `--cut-right`, falling back
+  to the raw `env()` on both edges. `score.js`'s `_scrollEdge()` adds the same
+  left value so the ribbon parks the playing barline clear of the SATB stack.
 
 ## Multi-key (rekey)
 
