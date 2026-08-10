@@ -10,7 +10,7 @@
  * the choir dynamic, and the A-B loop's two-button behavior.
  */
 import {
-  Piano, Sequencer, getInstrument, initInstruments, instrumentReady,
+  Piano, Sequencer, audioContextManager, getInstrument, initInstruments, instrumentReady,
 } from 'resound-sound';
 
 // Dynamic scales with how many voices sing: solo part loud, full choir soft.
@@ -21,6 +21,8 @@ const VELOCITY_LAYERS = VELOCITY_BY_ACTIVE.slice().reverse();
 // rings under a moving cursor instead of stopping dead on it.
 const TAIL_BEATS = 2;
 const PIANO_ID = 'sing-harmony';
+/** Gestures that can lift an audio suspension the browser won't lift for us. */
+const RESUME_GESTURES = ['pointerdown', 'keydown', 'touchend'];
 
 // Every hymn's pitches live inside C2-B5, so warming that range up front
 // covers the whole catalog before a song is even opened.
@@ -41,8 +43,10 @@ export class Player {
     this.song = null;
     this.onTick = null; // (beat) => void
     this.onEnd = null;
+    this.onPause = null; // playback stopped by something other than the user
     this._a = null; // loop start / end, in notated beats
     this._b = null;
+    this._gestureArmed = false;
 
     this.seq = new Sequencer({
       tailBeats: TAIL_BEATS,
@@ -50,6 +54,55 @@ export class Player {
     });
     this.seq.onTick = (beat) => { if (this.onTick) this.onTick(beat); };
     this.seq.onEnd = () => { if (this.onEnd) this.onEnd(); };
+    this._watchInterruptions();
+  }
+
+  // ---------- leaving the page and coming back ----------
+  // Following a link out and swiping back restores this page from the
+  // back/forward cache: the DOM and every object here survive, but the
+  // AudioContext was suspended on the way out and nothing resumes it. The app
+  // looks alive and plays nothing at all. (Backgrounding the tab suspends it
+  // the same way on iOS.)
+
+  _watchInterruptions() {
+    if (typeof window === 'undefined') return;
+    window.addEventListener('pageshow', (e) => {
+      if (e.persisted) this._wakeFromCache();
+      else this._resumeAudio();
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) this._resumeAudio();
+    });
+  }
+
+  _wakeFromCache() {
+    // The beat clock measures wall-clock time between ticks, which the cache
+    // froze: the first tick back would credit the whole visit to the classic
+    // site as elapsed music and hurl the cursor at the end of the hymn. Stop
+    // where we stood and let the reader press play again.
+    if (this.playing) {
+      this.pause();
+      if (this.onPause) this.onPause();
+    }
+    this._resumeAudio();
+  }
+
+  /** Lift a suspension if we can, else on the reader's next touch. */
+  _resumeAudio() {
+    // the manager's own getContext() would CREATE one; before the first play
+    // there is nothing to resume and nothing to create.
+    const ctx = audioContextManager.context;
+    if (!ctx || ctx.state === 'running') return;
+    Promise.resolve(ctx.resume()).catch(() => {});
+    if (this._gestureArmed) return;
+    this._gestureArmed = true;
+    const onGesture = () => {
+      this._gestureArmed = false;
+      for (const type of RESUME_GESTURES) document.removeEventListener(type, onGesture);
+      const live = audioContextManager.context;
+      if (live && live.state !== 'running') Promise.resolve(live.resume()).catch(() => {});
+    };
+    for (const type of RESUME_GESTURES) document.addEventListener(type, onGesture);
   }
 
   load(song) {
@@ -128,6 +181,8 @@ export class Player {
   }
 
   async play() {
+    // synchronous, so it still counts as running inside the tap that got here
+    this._resumeAudio();
     await this.ensurePiano();
     this.seq.play();
   }

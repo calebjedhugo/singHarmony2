@@ -11,7 +11,7 @@
  * Audio runs against the Web Audio mocks in test/audioMocks.js — the real
  * Piano, through a stubbed AudioContext.
  */
-import { getInstrument } from 'resound-sound';
+import { audioContextManager, getInstrument } from 'resound-sound';
 import { Player } from './player.js';
 
 const q = (pitch) => ({ pitch, length: '1/4' });
@@ -354,5 +354,102 @@ describe('Player A-B loop', () => {
     player.seek(2);
     player.rewind();
     expect(player.beat).toBe(1);
+  });
+});
+
+/**
+ * Following the "classic version" link out and swiping back restores this page
+ * from the back/forward cache — every object here survives, but the browser
+ * suspended the AudioContext on the way out and resumes nothing on the way in.
+ * Left alone, the app comes back looking perfectly alive and completely silent.
+ */
+describe('coming back from the back/forward cache', () => {
+  const ctx = () => audioContextManager.context;
+  const restore = (persisted = true) => {
+    const e = new Event('pageshow');
+    Object.defineProperty(e, 'persisted', { value: persisted });
+    window.dispatchEvent(e);
+  };
+
+  /** A player whose AudioContext exists and is live, as after one play. */
+  async function playedOnce() {
+    const player = new Player();
+    player.load(song());
+    await player.play();
+    player.pause();
+    return player;
+  }
+
+  it('resumes audio the browser left suspended', async () => {
+    const player = await playedOnce();
+    ctx().suspend();
+    expect(ctx().state).toBe('suspended');
+
+    restore();
+
+    expect(ctx().state).toBe('running');
+    expect(player.playing).toBe(false);
+  });
+
+  it('takes the next touch when the browser demands a gesture', async () => {
+    await playedOnce();
+    const live = ctx();
+    live.state = 'suspended';
+    live.resume = jest.fn(() => { /* browser refuses without a gesture */ });
+
+    restore();
+    expect(live.state).toBe('suspended');
+
+    live.resume = jest.fn(() => { live.state = 'running'; });
+    document.dispatchEvent(new Event('pointerdown'));
+
+    expect(live.resume).toHaveBeenCalled();
+    expect(live.state).toBe('running');
+  });
+
+  it('stops playback rather than letting the frozen clock hurl the cursor', async () => {
+    const player = await playedOnce();
+    const paused = jest.fn();
+    player.onPause = paused;
+    await player.play();
+    expect(player.playing).toBe(true);
+    const beat = player.beat;
+
+    restore();
+
+    expect(player.playing).toBe(false);
+    expect(player.beat).toBe(beat); // where the reader left it
+    expect(paused).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves a normal load alone — nothing was suspended and nothing was playing', async () => {
+    const player = await playedOnce();
+    const paused = jest.fn();
+    player.onPause = paused;
+
+    restore(false);
+
+    expect(paused).not.toHaveBeenCalled();
+    expect(ctx().state).toBe('running');
+  });
+
+  it('resumes when the tab comes back to the foreground', async () => {
+    await playedOnce();
+    ctx().suspend();
+
+    Object.defineProperty(document, 'hidden', { configurable: true, value: false });
+    document.dispatchEvent(new Event('visibilitychange'));
+
+    expect(ctx().state).toBe('running');
+  });
+
+  it('play() lifts a suspension itself, inside the tap', async () => {
+    const player = await playedOnce();
+    ctx().suspend();
+
+    await player.play();
+
+    expect(ctx().state).toBe('running');
+    expect(player.playing).toBe(true);
   });
 });

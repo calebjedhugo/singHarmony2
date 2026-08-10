@@ -74,6 +74,8 @@ export function createControls({ player, score, root = document }) {
   playBtn.addEventListener('click', togglePlay);
   $('#rewindBtn').addEventListener('click', () => player.rewind());
   player.onEnd = () => setPlayState('idle');
+  // playback the player stopped on its own (coming back from the b/f cache)
+  player.onPause = () => setPlayState('idle');
 
   // Space is a transport key, except while typing in the search box.
   const onKeydown = (e) => {
