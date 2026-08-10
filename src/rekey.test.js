@@ -13,7 +13,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { buildTimeline } from 'resound-sound';
-import { validateScore } from 'resound-harmony';
+import { validateScore } from 'resound-harmony/validate';
 import { Score } from './score.js';
 import { rekeySong, canonicalAnalysis, songMode, KEYS } from './rekey.js';
 

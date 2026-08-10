@@ -21,7 +21,18 @@ let harmonyLoading = null;
 
 /** Fetch the resound-harmony chunk (memoized). Safe to call early to prefetch. */
 export function loadHarmony() {
-  harmonyLoading ??= import('resound-harmony').then((m) => { harmonyModule = m; return m; });
+  // Subpath imports, not the package barrel: a namespace import of the
+  // barrel keeps every export alive in the chunk (embellish, leadsheet, …),
+  // while importing only the three modules the app calls lets Rollup drop
+  // the rest.
+  harmonyLoading ??= Promise.all([
+    import('resound-harmony/harmonize'),
+    import('resound-harmony/analyze'),
+    import('resound-harmony/transpose'),
+  ]).then(([{ harmonize }, { analyzeScore }, { transposeNotes }]) => {
+    harmonyModule = { harmonize, analyzeScore, transposeNotes };
+    return harmonyModule;
+  });
   return harmonyLoading;
 }
 
