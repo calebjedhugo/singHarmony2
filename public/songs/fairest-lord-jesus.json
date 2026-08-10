@@ -1,1 +1,974 @@
-{"title":"Fairest Lord Jesus","slug":"fairest-lord-jesus","category":null,"tempo":108,"timeSignature":[4,4],"keySignature":"Eb","pickupBeats":0,"tempoMap":[{"beat":52,"multiplier":0.95},{"beat":54,"multiplier":0.9},{"beat":55,"multiplier":0.85},{"beat":56,"multiplier":0.6}],"voices":[{"id":"soprano","clef":"treble","displayOctave":0,"notes":[{"length":"1/2","pitch":"Eb4","lyric":["Fair-","Fair","Fair","Beau-"]},{"length":"1/4","pitch":"Eb4","lyric":["est","are","is","ti-"]},{"length":"1/4","pitch":"Eb4","lyric":["Lord","the","the","ful"]},{"length":"1/4","pitch":"F4","lyric":["Je-","mead-","sun-","Sav-"]},{"length":"1/4","pitch":"D4"},{"length":"1/2","pitch":"Eb4","lyric":["sus!","ows,","shine,","ior!"]},{"length":"1/4","dotted":true,"pitch":"G4","lyric":["Rul-","fair-","fair-","Lord"]},{"length":"1/8","pitch":"G4","lyric":["er","er","er","of"]},{"length":"1/4","pitch":"G4","lyric":["of","still","still","all"]},{"length":"1/4","pitch":"G4","lyric":["all","the","the","the"]},{"length":"1/4","pitch":"Ab4","lyric":["na-","wood-","moon-","na-"]},{"length":"1/4","pitch":"F4"},{"length":"1/4","dotted":true,"pitch":"G4","lyric":["ture!","lands,","light,","tions!"]},{"length":"1/8"},{"length":"1/2","pitch":"Bb4","lyric":["O","robed","and","Son"]},{"length":"1/4","pitch":"Eb5","lyric":["Thou","in","all","of"]},{"length":"1/4","pitch":"C5","lyric":["of","the","the","God"]},{"length":"1/2","pitch":"Bb4","lyric":["God","bloom-","twin-","and"]},{"length":"1/4","pitch":"Ab4","lyric":["and","ing","kling","Son"]},{"length":"1/4","pitch":"G4","lyric":["man","garb","star-","of"]},{"length":"1/2","pitch":"Ab4","lyric":["the","of","ry","Man!"]},{"length":"1/2","pitch":"G4","lyric":["Son,","spring:","host:",null]},{"length":"1/2","dotted":true,"pitch":"F4"},{"length":"1/4"},{"length":"1/2","pitch":"Bb4","lyric":["Thee","Je-","Je-","Glo-"]},{"length":"1/4","pitch":"C5","lyric":["will","sus","sus","ry"]},{"length":"1/4","pitch":"Bb4","lyric":["I","is","shines","and"]},{"length":"1/4","pitch":"Bb4","lyric":["cher-","fair-","bright-","hon-"]},{"length":"1/4","pitch":"G4"},{"length":"1/2","pitch":"Ab4","lyric":["ish,","er,","er,","or,"]},{"length":"1/2","pitch":"Ab4","lyric":["Thee","Je-","Je-","praise,"]},{"length":"1/4","pitch":"Bb4","lyric":["will","sus","sus","a-"]},{"length":"1/4","pitch":"Ab4","lyric":["I","is","shines","do-"]},{"length":"1/4","pitch":"Ab4","lyric":["hon-","pur-","pur-","ra-"]},{"length":"1/4","pitch":"F4"},{"length":"1/4","pitch":"G4","lyric":["or,","er,","er,","tion,"]},{"length":"1/4","pitch":"G4","lyric":["Thou,","who","than","now"]},{"length":"1/4","pitch":"G4","lyric":["my","makes","all","and"]},{"length":"1/4","pitch":"G4","lyric":["soul's","the","the","for-"]},{"length":"1/4","pitch":"Bb4","lyric":["glo-","woe-","an-","ev-"]},{"length":"1/4","pitch":"Ab4","lyric":["ry,","ful","gels","er-"]},{"length":"1/2","pitch":"G4","lyric":["joy","heart","heav'n","more"]},{"length":"1/2","pitch":"F4","lyric":["and","to","can","be"]},{"length":"1/1","pitch":"Eb4","lyric":["crown.","sing.","boast.","Thine."]}]},{"id":"alto","clef":"treble","displayOctave":0,"notes":[{"length":"1/2","pitch":"Bb3"},{"length":"1/4","pitch":"C4"},{"length":"1/4","pitch":"C4"},{"length":"1/4","pitch":"C4"},{"length":"1/4","pitch":"Bb3"},{"length":"1/2","pitch":"Bb3"},{"length":"1/4","dotted":true,"pitch":"Eb4"},{"length":"1/8","pitch":"Eb4"},{"length":"1/4","pitch":"Eb4"},{"length":"1/4","pitch":"E4"},{"length":"1/4","pitch":"F4"},{"length":"1/4","pitch":"D4"},{"length":"1/4","dotted":true,"pitch":"Eb4"},{"length":"1/8"},{"length":"1/2","pitch":"Eb4"},{"length":"1/4","pitch":"Eb4"},{"length":"1/4","pitch":"F4"},{"length":"1/4","pitch":"F4"},{"length":"1/4","pitch":"Eb4"},{"length":"1/4","pitch":"D4"},{"length":"1/4","pitch":"Eb4"},{"length":"1/2","pitch":"F4"},{"length":"1/2","pitch":"Eb4"},{"length":"1/2","dotted":true,"pitch":"D4"},{"length":"1/4"},{"length":"1/2","pitch":"Eb4"},{"length":"1/4","pitch":"Eb4"},{"length":"1/4","pitch":"Eb4"},{"length":"1/2","pitch":"E4"},{"length":"1/2","pitch":"F4"},{"length":"1/2","pitch":"C4"},{"length":"1/4","pitch":"C4"},{"length":"1/4","pitch":"C4"},{"length":"1/2","pitch":"D4"},{"length":"1/4","pitch":"Eb4"},{"length":"1/4","pitch":"Eb4"},{"length":"1/4","pitch":"Eb4"},{"length":"1/4","pitch":"Eb4"},{"length":"1/4","pitch":"E4"},{"length":"1/4","pitch":"F4"},{"length":"1/2","pitch":"Eb4"},{"length":"1/2","pitch":"D4"},{"length":"1/1","pitch":"Eb4"}]},{"id":"tenor","clef":"treble","displayOctave":1,"notes":[{"length":"1/2","pitch":"G3"},{"length":"1/4","pitch":"G3"},{"length":"1/4","pitch":"G3"},{"length":"1/4","pitch":"Ab3"},{"length":"1/4","pitch":"F3"},{"length":"1/2","pitch":"G3"},{"length":"1/4","dotted":true,"pitch":"Bb3"},{"length":"1/8","pitch":"Bb3"},{"length":"1/4","pitch":"C4"},{"length":"1/4","pitch":"C4"},{"length":"1/4","pitch":"C4"},{"length":"1/4","pitch":"Bb3"},{"length":"1/4","dotted":true,"pitch":"Bb3"},{"length":"1/8"},{"length":"1/2","pitch":"Bb3"},{"length":"1/4","pitch":"C4"},{"length":"1/4","pitch":"D4"},{"length":"1/2","pitch":"Bb3"},{"length":"1/2","pitch":"Bb3"},{"length":"1/2","pitch":"Bb3"},{"length":"1/2","pitch":"Bb3"},{"length":"1/2","dotted":true,"pitch":"Bb3"},{"length":"1/4"},{"length":"1/2","pitch":"Bb3"},{"length":"1/4","pitch":"Ab3"},{"length":"1/4","pitch":"G3"},{"length":"1/4","pitch":"G3"},{"length":"1/4","pitch":"C4"},{"length":"1/2","pitch":"C4"},{"length":"1/2","pitch":"F3"},{"length":"1/4","pitch":"E3"},{"length":"1/4","pitch":"F3"},{"length":"1/4","pitch":"F3"},{"length":"1/4","pitch":"Bb3"},{"length":"1/4","pitch":"Bb3"},{"length":"1/4","pitch":"Bb3"},{"length":"1/4","pitch":"Bb3"},{"length":"1/4","pitch":"C4"},{"length":"1/4","pitch":"Db4"},{"length":"1/4","pitch":"C4"},{"length":"1/2","dotted":true,"pitch":"Bb3"},{"length":"1/4","pitch":"Ab3"},{"length":"1/1","pitch":"G3"}]},{"id":"bass","clef":"bass","displayOctave":0,"notes":[{"length":"1/2","pitch":"Eb3"},{"length":"1/4","pitch":"C3"},{"length":"1/4","pitch":"C3"},{"length":"1/4","pitch":"Ab2"},{"length":"1/4","pitch":"Bb2"},{"length":"1/2","pitch":"Eb3"},{"length":"1/4","pitch":"Eb3"},{"length":"1/4","pitch":"D3"},{"length":"1/4","pitch":"C3"},{"length":"1/4","pitch":"Bb2"},{"length":"1/4","pitch":"Ab2"},{"length":"1/4","pitch":"Bb2"},{"length":"1/4","dotted":true,"pitch":"Eb3"},{"length":"1/8"},{"length":"1/2","pitch":"G3"},{"length":"1/4","pitch":"Ab3"},{"length":"1/4","pitch":"Ab3"},{"length":"1/2","pitch":"G3"},{"length":"1/4","pitch":"F3"},{"length":"1/4","pitch":"Eb3"},{"length":"1/2","pitch":"D3"},{"length":"1/2","pitch":"Eb3"},{"length":"1/2","pitch":"Bb2"},{"length":"1/2","pitch":"Ab2"},{"length":"1/2","pitch":"G2"},{"length":"1/4","pitch":"Ab2"},{"length":"1/4","pitch":"Bb2"},{"length":"1/2","pitch":"C3"},{"length":"1/2","pitch":"F2"},{"length":"1/2","pitch":"F2"},{"length":"1/4","pitch":"G2"},{"length":"1/4","pitch":"Ab2"},{"length":"1/2","pitch":"Bb2"},{"length":"1/4","pitch":"Eb2"},{"length":"1/4","pitch":"Eb3"},{"length":"1/4","pitch":"D3"},{"length":"1/4","pitch":"C3"},{"length":"1/4","pitch":"G2"},{"length":"1/4","pitch":"Ab2"},{"length":"1/2","pitch":"Bb2"},{"length":"1/2","pitch":"Bb2"},{"length":"1/1","pitch":"Eb3"}]}]}
+{
+  "title": "Fairest Lord Jesus",
+  "slug": "fairest-lord-jesus",
+  "category": null,
+  "tempo": 108,
+  "timeSignature": [
+    4,
+    4
+  ],
+  "keySignature": "Eb",
+  "pickupBeats": 0,
+  "tempoMap": [
+    {
+      "beat": 52,
+      "multiplier": 0.95
+    },
+    {
+      "beat": 54,
+      "multiplier": 0.9
+    },
+    {
+      "beat": 55,
+      "multiplier": 0.85
+    },
+    {
+      "beat": 56,
+      "multiplier": 0.6
+    }
+  ],
+  "voices": [
+    {
+      "id": "soprano",
+      "clef": "treble",
+      "displayOctave": 0,
+      "notes": [
+        {
+          "length": "1/2",
+          "pitch": "Eb4",
+          "lyric": [
+            "Fair-",
+            "Fair",
+            "Fair",
+            "Beau-"
+          ]
+        },
+        {
+          "length": "1/4",
+          "pitch": "Eb4",
+          "lyric": [
+            "est",
+            "are",
+            "is",
+            "ti-"
+          ]
+        },
+        {
+          "length": "1/4",
+          "pitch": "Eb4",
+          "lyric": [
+            "Lord",
+            "the",
+            "the",
+            "ful"
+          ]
+        },
+        {
+          "length": "1/4",
+          "pitch": "F4",
+          "lyric": [
+            "Je-",
+            "mead-",
+            "sun-",
+            "Sav-"
+          ]
+        },
+        {
+          "length": "1/4",
+          "pitch": "D4"
+        },
+        {
+          "length": "1/2",
+          "pitch": "Eb4",
+          "lyric": [
+            "sus!",
+            "ows,",
+            "shine,",
+            "ior!"
+          ]
+        },
+        {
+          "length": "1/4",
+          "dotted": true,
+          "pitch": "G4",
+          "lyric": [
+            "Rul-",
+            "fair-",
+            "fair-",
+            "Lord"
+          ]
+        },
+        {
+          "length": "1/8",
+          "pitch": "G4",
+          "lyric": [
+            "er",
+            "er",
+            "er",
+            "of"
+          ]
+        },
+        {
+          "length": "1/4",
+          "pitch": "G4",
+          "lyric": [
+            "of",
+            "still",
+            "still",
+            "all"
+          ]
+        },
+        {
+          "length": "1/4",
+          "pitch": "G4",
+          "lyric": [
+            "all",
+            "the",
+            "the",
+            "the"
+          ]
+        },
+        {
+          "length": "1/4",
+          "pitch": "Ab4",
+          "lyric": [
+            "na-",
+            "wood-",
+            "moon-",
+            "na-"
+          ]
+        },
+        {
+          "length": "1/4",
+          "pitch": "F4"
+        },
+        {
+          "length": "1/4",
+          "dotted": true,
+          "pitch": "G4",
+          "lyric": [
+            "ture!",
+            "lands,",
+            "light,",
+            "tions!"
+          ]
+        },
+        {
+          "length": "1/8"
+        },
+        {
+          "length": "1/2",
+          "pitch": "Bb4",
+          "lyric": [
+            "O",
+            "Robed",
+            "And",
+            "Son"
+          ]
+        },
+        {
+          "length": "1/4",
+          "pitch": "Eb5",
+          "lyric": [
+            "Thou",
+            "in",
+            "all",
+            "of"
+          ]
+        },
+        {
+          "length": "1/4",
+          "pitch": "C5",
+          "lyric": [
+            "of",
+            "the",
+            "the",
+            null
+          ]
+        },
+        {
+          "length": "1/2",
+          "pitch": "Bb4",
+          "lyric": [
+            "God",
+            "bloom-",
+            "twink-",
+            "God"
+          ]
+        },
+        {
+          "length": "1/4",
+          "pitch": "Ab4",
+          "lyric": [
+            "and",
+            "ing",
+            "ling",
+            "and"
+          ]
+        },
+        {
+          "length": "1/4",
+          "pitch": "G4"
+        },
+        {
+          "length": "1/2",
+          "pitch": "Ab4",
+          "lyric": [
+            "man",
+            "garb",
+            "star-",
+            "Son"
+          ]
+        },
+        {
+          "length": "1/2",
+          "pitch": "G4",
+          "lyric": [
+            "the",
+            "of",
+            "ry",
+            "of"
+          ]
+        },
+        {
+          "length": "1/2",
+          "dotted": true,
+          "pitch": "F4",
+          "lyric": [
+            "Son,",
+            "spring:",
+            "host:",
+            "Man!"
+          ]
+        },
+        {
+          "length": "1/4"
+        },
+        {
+          "length": "1/2",
+          "pitch": "Bb4",
+          "lyric": [
+            "Thee",
+            "Je-",
+            "Je-",
+            "Glo-"
+          ]
+        },
+        {
+          "length": "1/4",
+          "pitch": "C5",
+          "lyric": [
+            "will",
+            "sus",
+            "sus",
+            "ry"
+          ]
+        },
+        {
+          "length": "1/4",
+          "pitch": "Bb4",
+          "lyric": [
+            "I",
+            "is",
+            "shines",
+            "and"
+          ]
+        },
+        {
+          "length": "1/4",
+          "pitch": "Bb4",
+          "lyric": [
+            "cher-",
+            "fair-",
+            "bright-",
+            "hon-"
+          ]
+        },
+        {
+          "length": "1/4",
+          "pitch": "G4"
+        },
+        {
+          "length": "1/2",
+          "pitch": "Ab4",
+          "lyric": [
+            "ish,",
+            "er,",
+            "er,",
+            "or,"
+          ]
+        },
+        {
+          "length": "1/2",
+          "pitch": "Ab4",
+          "lyric": [
+            "Thee",
+            "Je-",
+            "Je-",
+            "praise,"
+          ]
+        },
+        {
+          "length": "1/4",
+          "pitch": "Bb4",
+          "lyric": [
+            "will",
+            "sus",
+            "sus",
+            "a-"
+          ]
+        },
+        {
+          "length": "1/4",
+          "pitch": "Ab4",
+          "lyric": [
+            "I",
+            "is",
+            "shines",
+            "do-"
+          ]
+        },
+        {
+          "length": "1/4",
+          "pitch": "Ab4",
+          "lyric": [
+            "hon-",
+            "pur-",
+            "pur-",
+            "ra-"
+          ]
+        },
+        {
+          "length": "1/4",
+          "pitch": "F4"
+        },
+        {
+          "length": "1/4",
+          "pitch": "G4",
+          "lyric": [
+            "or,",
+            "er,",
+            "er,",
+            "tion,"
+          ]
+        },
+        {
+          "length": "1/4",
+          "pitch": "G4",
+          "lyric": [
+            "Thou,",
+            "who",
+            "than",
+            "now"
+          ]
+        },
+        {
+          "length": "1/4",
+          "pitch": "G4",
+          "lyric": [
+            "my",
+            "makes",
+            "all",
+            "and"
+          ]
+        },
+        {
+          "length": "1/4",
+          "pitch": "G4",
+          "lyric": [
+            "soul's",
+            "the",
+            "the",
+            "for-"
+          ]
+        },
+        {
+          "length": "1/4",
+          "pitch": "Bb4",
+          "lyric": [
+            "glo-",
+            "woe-",
+            "an-",
+            "ev-"
+          ]
+        },
+        {
+          "length": "1/4",
+          "pitch": "Ab4",
+          "lyric": [
+            "ry,",
+            "ful",
+            "gels",
+            "er-"
+          ]
+        },
+        {
+          "length": "1/2",
+          "pitch": "G4",
+          "lyric": [
+            "joy",
+            "heart",
+            "heav'n",
+            "more"
+          ]
+        },
+        {
+          "length": "1/2",
+          "pitch": "F4",
+          "lyric": [
+            "and",
+            "to",
+            "can",
+            "be"
+          ]
+        },
+        {
+          "length": "1/1",
+          "pitch": "Eb4",
+          "lyric": [
+            "crown.",
+            "sing.",
+            "boast.",
+            "Thine."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "alto",
+      "clef": "treble",
+      "displayOctave": 0,
+      "notes": [
+        {
+          "length": "1/2",
+          "pitch": "Bb3"
+        },
+        {
+          "length": "1/4",
+          "pitch": "C4"
+        },
+        {
+          "length": "1/4",
+          "pitch": "C4"
+        },
+        {
+          "length": "1/4",
+          "pitch": "C4"
+        },
+        {
+          "length": "1/4",
+          "pitch": "Bb3"
+        },
+        {
+          "length": "1/2",
+          "pitch": "Bb3"
+        },
+        {
+          "length": "1/4",
+          "dotted": true,
+          "pitch": "Eb4"
+        },
+        {
+          "length": "1/8",
+          "pitch": "Eb4"
+        },
+        {
+          "length": "1/4",
+          "pitch": "Eb4"
+        },
+        {
+          "length": "1/4",
+          "pitch": "E4"
+        },
+        {
+          "length": "1/4",
+          "pitch": "F4"
+        },
+        {
+          "length": "1/4",
+          "pitch": "D4"
+        },
+        {
+          "length": "1/4",
+          "dotted": true,
+          "pitch": "Eb4"
+        },
+        {
+          "length": "1/8"
+        },
+        {
+          "length": "1/2",
+          "pitch": "Eb4"
+        },
+        {
+          "length": "1/4",
+          "pitch": "Eb4"
+        },
+        {
+          "length": "1/4",
+          "pitch": "F4"
+        },
+        {
+          "length": "1/4",
+          "pitch": "F4"
+        },
+        {
+          "length": "1/4",
+          "pitch": "Eb4"
+        },
+        {
+          "length": "1/4",
+          "pitch": "D4"
+        },
+        {
+          "length": "1/4",
+          "pitch": "Eb4"
+        },
+        {
+          "length": "1/2",
+          "pitch": "F4"
+        },
+        {
+          "length": "1/2",
+          "pitch": "Eb4"
+        },
+        {
+          "length": "1/2",
+          "dotted": true,
+          "pitch": "D4"
+        },
+        {
+          "length": "1/4"
+        },
+        {
+          "length": "1/2",
+          "pitch": "Eb4"
+        },
+        {
+          "length": "1/4",
+          "pitch": "Eb4"
+        },
+        {
+          "length": "1/4",
+          "pitch": "Eb4"
+        },
+        {
+          "length": "1/2",
+          "pitch": "E4"
+        },
+        {
+          "length": "1/2",
+          "pitch": "F4"
+        },
+        {
+          "length": "1/2",
+          "pitch": "C4"
+        },
+        {
+          "length": "1/4",
+          "pitch": "C4"
+        },
+        {
+          "length": "1/4",
+          "pitch": "C4"
+        },
+        {
+          "length": "1/2",
+          "pitch": "D4"
+        },
+        {
+          "length": "1/4",
+          "pitch": "Eb4"
+        },
+        {
+          "length": "1/4",
+          "pitch": "Eb4"
+        },
+        {
+          "length": "1/4",
+          "pitch": "Eb4"
+        },
+        {
+          "length": "1/4",
+          "pitch": "Eb4"
+        },
+        {
+          "length": "1/4",
+          "pitch": "E4"
+        },
+        {
+          "length": "1/4",
+          "pitch": "F4"
+        },
+        {
+          "length": "1/2",
+          "pitch": "Eb4"
+        },
+        {
+          "length": "1/2",
+          "pitch": "D4"
+        },
+        {
+          "length": "1/1",
+          "pitch": "Eb4"
+        }
+      ]
+    },
+    {
+      "id": "tenor",
+      "clef": "treble",
+      "displayOctave": 1,
+      "notes": [
+        {
+          "length": "1/2",
+          "pitch": "G3"
+        },
+        {
+          "length": "1/4",
+          "pitch": "G3"
+        },
+        {
+          "length": "1/4",
+          "pitch": "G3"
+        },
+        {
+          "length": "1/4",
+          "pitch": "Ab3"
+        },
+        {
+          "length": "1/4",
+          "pitch": "F3"
+        },
+        {
+          "length": "1/2",
+          "pitch": "G3"
+        },
+        {
+          "length": "1/4",
+          "dotted": true,
+          "pitch": "Bb3"
+        },
+        {
+          "length": "1/8",
+          "pitch": "Bb3"
+        },
+        {
+          "length": "1/4",
+          "pitch": "C4"
+        },
+        {
+          "length": "1/4",
+          "pitch": "C4"
+        },
+        {
+          "length": "1/4",
+          "pitch": "C4"
+        },
+        {
+          "length": "1/4",
+          "pitch": "Bb3"
+        },
+        {
+          "length": "1/4",
+          "dotted": true,
+          "pitch": "Bb3"
+        },
+        {
+          "length": "1/8"
+        },
+        {
+          "length": "1/2",
+          "pitch": "Bb3"
+        },
+        {
+          "length": "1/4",
+          "pitch": "C4"
+        },
+        {
+          "length": "1/4",
+          "pitch": "D4"
+        },
+        {
+          "length": "1/2",
+          "pitch": "Bb3"
+        },
+        {
+          "length": "1/2",
+          "pitch": "Bb3"
+        },
+        {
+          "length": "1/2",
+          "pitch": "Bb3"
+        },
+        {
+          "length": "1/2",
+          "pitch": "Bb3"
+        },
+        {
+          "length": "1/2",
+          "dotted": true,
+          "pitch": "Bb3"
+        },
+        {
+          "length": "1/4"
+        },
+        {
+          "length": "1/2",
+          "pitch": "Bb3"
+        },
+        {
+          "length": "1/4",
+          "pitch": "Ab3"
+        },
+        {
+          "length": "1/4",
+          "pitch": "G3"
+        },
+        {
+          "length": "1/4",
+          "pitch": "G3"
+        },
+        {
+          "length": "1/4",
+          "pitch": "C4"
+        },
+        {
+          "length": "1/2",
+          "pitch": "C4"
+        },
+        {
+          "length": "1/2",
+          "pitch": "F3"
+        },
+        {
+          "length": "1/4",
+          "pitch": "E3"
+        },
+        {
+          "length": "1/4",
+          "pitch": "F3"
+        },
+        {
+          "length": "1/4",
+          "pitch": "F3"
+        },
+        {
+          "length": "1/4",
+          "pitch": "Bb3"
+        },
+        {
+          "length": "1/4",
+          "pitch": "Bb3"
+        },
+        {
+          "length": "1/4",
+          "pitch": "Bb3"
+        },
+        {
+          "length": "1/4",
+          "pitch": "Bb3"
+        },
+        {
+          "length": "1/4",
+          "pitch": "C4"
+        },
+        {
+          "length": "1/4",
+          "pitch": "Db4"
+        },
+        {
+          "length": "1/4",
+          "pitch": "C4"
+        },
+        {
+          "length": "1/2",
+          "dotted": true,
+          "pitch": "Bb3"
+        },
+        {
+          "length": "1/4",
+          "pitch": "Ab3"
+        },
+        {
+          "length": "1/1",
+          "pitch": "G3"
+        }
+      ]
+    },
+    {
+      "id": "bass",
+      "clef": "bass",
+      "displayOctave": 0,
+      "notes": [
+        {
+          "length": "1/2",
+          "pitch": "Eb3"
+        },
+        {
+          "length": "1/4",
+          "pitch": "C3"
+        },
+        {
+          "length": "1/4",
+          "pitch": "C3"
+        },
+        {
+          "length": "1/4",
+          "pitch": "Ab2"
+        },
+        {
+          "length": "1/4",
+          "pitch": "Bb2"
+        },
+        {
+          "length": "1/2",
+          "pitch": "Eb3"
+        },
+        {
+          "length": "1/4",
+          "pitch": "Eb3"
+        },
+        {
+          "length": "1/4",
+          "pitch": "D3"
+        },
+        {
+          "length": "1/4",
+          "pitch": "C3"
+        },
+        {
+          "length": "1/4",
+          "pitch": "Bb2"
+        },
+        {
+          "length": "1/4",
+          "pitch": "Ab2"
+        },
+        {
+          "length": "1/4",
+          "pitch": "Bb2"
+        },
+        {
+          "length": "1/4",
+          "dotted": true,
+          "pitch": "Eb3"
+        },
+        {
+          "length": "1/8"
+        },
+        {
+          "length": "1/2",
+          "pitch": "G3"
+        },
+        {
+          "length": "1/4",
+          "pitch": "Ab3"
+        },
+        {
+          "length": "1/4",
+          "pitch": "Ab3"
+        },
+        {
+          "length": "1/2",
+          "pitch": "G3"
+        },
+        {
+          "length": "1/4",
+          "pitch": "F3"
+        },
+        {
+          "length": "1/4",
+          "pitch": "Eb3"
+        },
+        {
+          "length": "1/2",
+          "pitch": "D3"
+        },
+        {
+          "length": "1/2",
+          "pitch": "Eb3"
+        },
+        {
+          "length": "1/2",
+          "pitch": "Bb2"
+        },
+        {
+          "length": "1/2",
+          "pitch": "Ab2"
+        },
+        {
+          "length": "1/2",
+          "pitch": "G2"
+        },
+        {
+          "length": "1/4",
+          "pitch": "Ab2"
+        },
+        {
+          "length": "1/4",
+          "pitch": "Bb2"
+        },
+        {
+          "length": "1/2",
+          "pitch": "C3"
+        },
+        {
+          "length": "1/2",
+          "pitch": "F2"
+        },
+        {
+          "length": "1/2",
+          "pitch": "F2"
+        },
+        {
+          "length": "1/4",
+          "pitch": "G2"
+        },
+        {
+          "length": "1/4",
+          "pitch": "Ab2"
+        },
+        {
+          "length": "1/2",
+          "pitch": "Bb2"
+        },
+        {
+          "length": "1/4",
+          "pitch": "Eb2"
+        },
+        {
+          "length": "1/4",
+          "pitch": "Eb3"
+        },
+        {
+          "length": "1/4",
+          "pitch": "D3"
+        },
+        {
+          "length": "1/4",
+          "pitch": "C3"
+        },
+        {
+          "length": "1/4",
+          "pitch": "G2"
+        },
+        {
+          "length": "1/4",
+          "pitch": "Ab2"
+        },
+        {
+          "length": "1/2",
+          "pitch": "Bb2"
+        },
+        {
+          "length": "1/2",
+          "pitch": "Bb2"
+        },
+        {
+          "length": "1/1",
+          "pitch": "Eb3"
+        }
+      ]
+    }
+  ]
+}
